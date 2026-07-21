@@ -11,11 +11,13 @@ Speech Input (Patient Voice)
        ↓
   [Google Gemini] → Intent Recognition & Tool Calling
        ↓
-  [Tool Endpoints] → DB Queries (availability, booking, etc.)
+  [Tool Calling Layer] → /api/v1/tools/* endpoints
        ↓
-  [ElevenLabs / Deepgram TTS] → Text-to-Speech
+  [NeonDB] → Org-scoped queries (availability, booking, history)
        ↓
-Speech Output (AI Voice Reply)
+  [Human-in-the-Loop] → Risk engine: auto-execute or staff approval queue
+       ↓
+Text Response (UI)
 ```
 
 ## Tech Stack
@@ -24,9 +26,9 @@ Speech Output (AI Voice Reply)
 |-------|-----------|
 | Frontend | Next.js 15 (App Router), TypeScript, Tailwind CSS, shadcn/ui |
 | Backend | FastAPI, Python 3.12, SQLModel, Pydantic |
-| Database | PostgreSQL (Alembic migrations) |
+| Database | PostgreSQL on NeonDB (Alembic migrations) |
 | Auth | Local JWT (python-jose) + bcrypt password hashing, role-based access control |
-| Voice AI | Google Gemini, AssemblyAI (STT), ElevenLabs/Deepgram (TTS) |
+| Voice AI | Google Gemini, AssemblyAI (STT) — text responses in the UI |
 | Deployment | Docker Compose (BE + DB), Vercel (FE) |
 
 ## Quick Start
@@ -82,7 +84,7 @@ PYTHONPATH=. PYTHONIOENCODING=utf-8 uv run python scripts/test_hitl_e2e.py
 
 - **Multi-tenancy** — every business table carries `org_id`; all queries are org-scoped at the service layer. No cross-organization access.
 - **RBAC** — `admin`, `doctor`, `front_desk`, `patient` roles enforced on every endpoint.
-- **AI voice assistant** — patient speech → AssemblyAI STT → Gemini → tool endpoints → database → TTS reply. The LLM never touches the database directly; all actions go through `POST /api/v1/tools/*` endpoints.
+- **AI voice assistant** — patient speech → AssemblyAI STT → Gemini → tool endpoints → NeonDB → HITL check → text reply in the UI. The LLM never touches the database directly; all actions go through `POST /api/v1/tools/*` endpoints.
 - **Medical safety** — the AI never diagnoses, prescribes, or gives emergency advice. Emergency phrases (chest pain, difficulty breathing, stroke symptoms, severe bleeding, loss of consciousness) short-circuit the agent entirely: the patient gets an emergency warning, staff are alerted, and the conversation is logged.
 - **Human-in-the-loop approvals** — a deterministic risk engine routes each requested action:
   - *Auto-execute*: finding doctors, checking availability, routine booking/rescheduling, reminders.
@@ -127,12 +129,8 @@ Layering rule: endpoint → service → repository → model. Don't skip layers.
 | `backend/docs/hitl-approvals.md` | HITL approval workflow: decision rules, schema, API, agent behavior |
 | `backend/docs/agent-logic.md` | Voice agent pipeline and tool-calling logic |
 | `backend/docs/email-notifications.md` | Email templates and triggers |
-| `CHANGES_SUMMARY.md` | Running log of fixes and features |
-| `FIXES_APPLIED.md` | Record of applied fixes and patches |
-| `VOICE_ENDPOINT_FIX_SUMMARY.md` | Summary of voice endpoint fixes |
+| `CHANGES_SUMMARY.md` | Running log of fixes and features (incl. CORS fixes) |
 | `test_voice_simple.ps1` | PowerShell script for testing voice flow |
-| `INVESTIGATION_INDEX.md` | Index of investigation findings |
-| `CORS_FIX_ANALYSIS.md` | Analysis of CORS-related fixes |
 
 ## Medical Disclaimer
 

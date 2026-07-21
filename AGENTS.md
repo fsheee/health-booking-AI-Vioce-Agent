@@ -44,7 +44,7 @@ npm run dev                             # → http://localhost:3000
 
 ## AI voice agent
 
-Flow: patient voice → AssemblyAI STT → Gemini 2.5 Flash → FastAPI tool endpoints → DB → ElevenLabs/Deepgram TTS.
+Flow: patient voice → AssemblyAI STT → Gemini 3.1 Flash Lite → FastAPI tool endpoints → NeonDB (PostgreSQL) → HITL risk check → text response in the UI (speech-in, text-out).
 
 - **The LLM never touches the database directly.** All DB actions go through tool endpoints: `POST /api/v1/tools/check_availability`, `book_appointment`, `get_patient_history`, `send_reminder`.
 - **Medical safety (non-negotiable)**: the AI must never diagnose, prescribe, recommend treatments, or give emergency medical advice. Emergency phrases (chest pain, difficulty breathing, stroke symptoms, severe bleeding, loss of consciousness) must immediately trigger human escalation, an emergency warning message, and conversation logging.

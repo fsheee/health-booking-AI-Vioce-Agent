@@ -32,6 +32,8 @@ FIXES_APPLIED.md
 INVESTIGATION_INDEX.md
 VOICE_ENDPOINT_FIX_SUMMARY.md
 test_voice_simple.ps1
+structure.txt
+prompt.md
 
 # OS
 .DS_Store
