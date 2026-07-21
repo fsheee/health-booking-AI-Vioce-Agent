@@ -2,6 +2,22 @@
 
 Multi-tenant SaaS platform for clinics and healthcare providers. AI-powered voice assistant for appointment booking, patient management, and reminders — with a human-in-the-loop (HITL) approval workflow so high-risk requests are always reviewed by clinic staff before anything happens.
 
+## Pipeline
+
+```
+Speech Input (Patient Voice)
+       ↓
+  [AssemblyAI STT] → Speech-to-Text
+       ↓
+  [Google Gemini] → Intent Recognition & Tool Calling
+       ↓
+  [Tool Endpoints] → DB Queries (availability, booking, etc.)
+       ↓
+  [ElevenLabs / Deepgram TTS] → Text-to-Speech
+       ↓
+Speech Output (AI Voice Reply)
+```
+
 ## Tech Stack
 
 | Layer | Technology |
