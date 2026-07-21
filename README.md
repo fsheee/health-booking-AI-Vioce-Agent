@@ -128,6 +128,9 @@ Layering rule: endpoint → service → repository → model. Don't skip layers.
 | `backend/docs/agent-logic.md` | Voice agent pipeline and tool-calling logic |
 | `backend/docs/email-notifications.md` | Email templates and triggers |
 | `CHANGES_SUMMARY.md` | Running log of fixes and features |
+| `FIXES_APPLIED.md` | Record of applied fixes and patches |
+| `VOICE_ENDPOINT_FIX_SUMMARY.md` | Summary of voice endpoint fixes |
+| `test_voice_simple.ps1` | PowerShell script for testing voice flow |
 
 ## Medical Disclaimer
 
