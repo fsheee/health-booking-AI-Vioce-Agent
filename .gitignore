@@ -1,0 +1,53 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+*.egg
+
+# Node
+node_modules/
+.next/
+npm-debug.log*
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.mimocode/
+
+# Misc analysis/docs
+CHANGES_SUMMARY.md
+CLAUDE.md
+CORS_FIX_ANALYSIS.md
+FIXES_APPLIED.md
+INVESTIGATION_INDEX.md
+VOICE_ENDPOINT_FIX_SUMMARY.md
+test_voice_simple.ps1
+
+# OS
+.DS_Store
+Thumbs.db
+
+# DB
+*.db
+*.sqlite3
+
+# Docker
+docker-data/
+
+# Build artifacts
+build/
+*.egg-info/
+
+# Logs
+*.log
+logs/
