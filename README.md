@@ -131,6 +131,8 @@ Layering rule: endpoint → service → repository → model. Don't skip layers.
 | `FIXES_APPLIED.md` | Record of applied fixes and patches |
 | `VOICE_ENDPOINT_FIX_SUMMARY.md` | Summary of voice endpoint fixes |
 | `test_voice_simple.ps1` | PowerShell script for testing voice flow |
+| `INVESTIGATION_INDEX.md` | Index of investigation findings |
+| `CORS_FIX_ANALYSIS.md` | Analysis of CORS-related fixes |
 
 ## Medical Disclaimer
 
