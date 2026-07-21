@@ -72,6 +72,12 @@ uv run ruff check .          # lint
 PYTHONPATH=. PYTHONIOENCODING=utf-8 uv run python scripts/test_hitl_e2e.py
 ```
 
+## Voice Support
+
+- AssemblyAI Speech-to-Text
+- Voice-to-Text processing
+- Text-based responses
+
 ## Key Features
 
 - **Multi-tenancy** — every business table carries `org_id`; all queries are org-scoped at the service layer. No cross-organization access.
