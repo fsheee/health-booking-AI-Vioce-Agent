@@ -9,6 +9,7 @@ from app.models.organization import Organization
 from app.models.patient import Patient
 from app.models.user import User, UserRole
 from app.schemas.auth import LoginRequest, SignupRequest, TokenResponse, UserResponse
+from pydantic import BaseModel
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -66,6 +67,36 @@ def signup(data: SignupRequest, session: Session = Depends(get_session)):
         sub=str(user.id), email=user.email, role=user.role.value, org_id=str(user.org_id)
     )
     return TokenResponse(access_token=access_token)
+
+
+class SeedAdminRequest(BaseModel):
+    email: str = "admin@gmail.com"
+    password: str = "admin123"
+
+
+@router.post("/seed-admin")
+def seed_admin(data: SeedAdminRequest, session: Session = Depends(get_session)):
+    org = session.exec(select(Organization).where(Organization.slug == "default")).first()
+    if not org:
+        org = Organization(name="Default Clinic", slug="default")
+        session.add(org)
+        session.commit()
+        session.refresh(org)
+
+    existing = session.exec(select(User).where(User.email == data.email)).first()
+    if existing:
+        return {"message": f"User {data.email} already exists", "email": data.email}
+
+    user = User(
+        org_id=org.id,
+        hashed_password=pwd_context.hash(data.password),
+        email=data.email,
+        full_name="Admin User",
+        role=UserRole.admin,
+    )
+    session.add(user)
+    session.commit()
+    return {"message": f"Admin {data.email} created", "email": data.email, "password": data.password}
 
 
 @router.post("/login", response_model=TokenResponse)
