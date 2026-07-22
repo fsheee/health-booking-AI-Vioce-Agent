@@ -9,6 +9,12 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
     ...(options?.headers as Record<string, string>),
   };
   const res = await fetch(`${API_BASE}/api/v1${path}`, { ...options, headers });
+  if (res.status === 401) {
+    localStorage.removeItem("access_token");
+    if (typeof window !== "undefined") {
+      window.location.href = "/login";
+    }
+  }
   if (!res.ok) {
     const err = await res.json().catch(() => ({ detail: res.statusText }));
     throw new Error(err.detail || "Request failed");
@@ -50,6 +56,8 @@ export const api = {
       request<any>(`/appointments/${id}`, { method: "PUT", body: JSON.stringify(data) }),
     cancel: (id: string) =>
       request<any>(`/appointments/${id}`, { method: "DELETE" }),
+    reschedule: (id: string, data: { scheduled_at: string; reason?: string }) =>
+      request<any>(`/appointments/${id}/reschedule`, { method: "PUT", body: JSON.stringify(data) }),
   },
   doctors: {
     list: () => request<any[]>("/doctors"),

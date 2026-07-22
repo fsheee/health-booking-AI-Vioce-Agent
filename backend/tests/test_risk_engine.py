@@ -25,23 +25,20 @@ class TestAssessTranscript:
         assert decision.requires_approval is True
         assert decision.request_type == ApprovalRequestType.emergency_escalation
 
-    def test_emergency_word_escalates_as_urgent(self):
-        # Regression: "I need an emergency appointment" produced no HITL entry
-        # because "emergency" was in no trigger list.
+    def test_emergency_word_does_not_escalate(self):
+        # Per HITL policy: trigger words like "emergency" alone do NOT escalate.
         decision = assess_transcript("I need an emergency appointment")
-        assert decision.requires_approval is True
-        assert decision.request_type == ApprovalRequestType.urgent_symptoms
-        assert "emergency" in decision.reason.lower()
+        assert decision.requires_approval is False
 
-    def test_urgent_symptom_phrase_escalates(self):
-        # "chest tightness" is urgent but not in EMERGENCY_PHRASES — it must
-        # route to urgent_symptoms, not the hard-emergency short-circuit.
-        decision = assess_transcript("I've been having chest tightness at night")
+    def test_elevated_risk_phrase_escalates(self):
+        # "persistent severe pain" is elevated risk — not hard emergency,
+        # but worthy of human review before booking.
+        decision = assess_transcript("I have persistent severe pain in my back")
         assert decision.requires_approval is True
         assert decision.request_type == ApprovalRequestType.urgent_symptoms
 
     def test_matching_is_case_insensitive(self):
-        decision = assess_transcript("THIS IS AN EMERGENCY")
+        decision = assess_transcript("FAINTED")
         assert decision.requires_approval is True
 
     def test_routine_booking_request_is_not_flagged(self):

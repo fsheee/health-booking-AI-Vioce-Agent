@@ -7,6 +7,7 @@ from sqlmodel import Session, create_engine, select
 
 from app.core.config import settings
 from app.models.appointment import Appointment
+from app.models.audit_log import AuditLog
 from app.models.reminder import Reminder, ReminderChannel, ReminderStatus
 from app.services.email_service import send_appointment_reminder as _send_email_reminder
 
@@ -77,7 +78,20 @@ def process_pending_reminders(engine=None):
 
             session.add(reminder)
 
-        session.commit()
+            if reminder.status == ReminderStatus.sent:
+                session.add(AuditLog(
+                    org_id=reminder.org_id,
+                    action="reminder_sent",
+                    resource_type="reminder",
+                    resource_id=reminder.id,
+                    details={
+                        "channel": reminder.channel.value,
+                        "type": reminder.type.value,
+                        "appointment_id": str(reminder.appointment_id) if reminder.appointment_id else None,
+                    },
+                ))
+
+            session.commit()
 
     if owns_engine:
         engine.dispose()

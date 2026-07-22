@@ -184,6 +184,113 @@ def approval_granted_email(
     return subject, _base_html(body)
 
 
+def reschedule_email(
+    patient_name: str,
+    doctor_name: str,
+    specialization: str,
+    old_date: str,
+    old_time: str,
+    new_date: str,
+    new_time: str,
+    appointment_id: str,
+    clinic_name: str = "Healthcare Clinic",
+) -> tuple[str, str]:
+    subject = "Appointment Rescheduled"
+    body = f"""
+    <p>Dear <strong>{patient_name}</strong>,</p>
+    <p>Your appointment has been <span class="badge badge-amber">rescheduled</span>.</p>
+    <div class="details">
+      <table>
+        <tr><td>Doctor</td><td>{doctor_name}</td></tr>
+        <tr><td>Specialization</td><td>{specialization}</td></tr>
+        <tr><td style="color: #991b1b;">Previous Date</td><td style="color: #991b1b;">{old_date} at {old_time}</td></tr>
+        <tr><td style="color: #166534;">New Date</td>
+          <td style="color: #166534; font-weight: 700;">{new_date}<br>at {new_time}</td></tr>
+        <tr><td>Appointment ID</td><td style="font-family: monospace;">{appointment_id[:8]}...</td></tr>
+        <tr><td>Clinic</td><td>{clinic_name}</td></tr>
+      </table>
+    </div>
+    <p>Please arrive 10 minutes before your new scheduled time.</p>
+    <p>If you need to reschedule again or cancel, please contact us.</p>
+    <p style="color: #64748b; font-size: 13px;">Thank you,<br><strong>{clinic_name}</strong></p>
+    """
+    return subject, _base_html(body)
+
+
+def hitl_under_review_email(
+    patient_name: str,
+    reason: str,
+    clinic_name: str = "Healthcare Clinic",
+) -> tuple[str, str]:
+    subject = "Appointment Request Under Review"
+    body = f"""
+    <p>Dear <strong>{patient_name}</strong>,</p>
+    <p>Your appointment request has been submitted and is currently</p>
+    <p><span class="badge badge-amber">under review</span> by our staff.</p>
+    <div class="details">
+      <table>
+        <tr><td>Reason for Review</td><td>{reason}</td></tr>
+        <tr><td>Current Status</td><td>Pending Review</td></tr>
+        <tr><td>Expected Follow-up</td><td>Our team will review your request and notify you of the decision.</td></tr>
+        <tr><td>Clinic</td><td>{clinic_name}</td></tr>
+      </table>
+    </div>
+    <p>If you have any questions, please contact the clinic directly.</p>
+    <p style="color: #64748b; font-size: 13px;">Thank you,<br><strong>{clinic_name}</strong></p>
+    """
+    return subject, _base_html(body)
+
+
+def hitl_approved_email(
+    patient_name: str,
+    doctor_name: str,
+    appointment_date: str,
+    appointment_time: str,
+    clinic_name: str = "Healthcare Clinic",
+) -> tuple[str, str]:
+    subject = "Appointment Approved"
+    body = f"""
+    <p>Dear <strong>{patient_name}</strong>,</p>
+    <p>Your appointment request has been <span class="badge badge-green">approved</span> by our staff.</p>
+    <div class="details">
+      <table>
+        <tr><td>Doctor</td><td>{doctor_name}</td></tr>
+        <tr><td>Date</td><td>{appointment_date}</td></tr>
+        <tr><td>Time</td><td>{appointment_time}</td></tr>
+        <tr><td>Clinic</td><td>{clinic_name}</td></tr>
+      </table>
+    </div>
+    <p>Please arrive 10 minutes before your scheduled time.</p>
+    <p style="color: #64748b; font-size: 13px;">Thank you,<br><strong>{clinic_name}</strong></p>
+    """
+    return subject, _base_html(body)
+
+
+def hitl_rejected_email(
+    patient_name: str,
+    reason: str | None,
+    reviewer_comment: str | None,
+    clinic_name: str = "Healthcare Clinic",
+) -> tuple[str, str]:
+    subject = "Appointment Request Rejected"
+    comment_html = f"<tr><td>Staff Note</td><td>{reviewer_comment}</td></tr>" if reviewer_comment else ""
+    body = f"""
+    <p>Dear <strong>{patient_name}</strong>,</p>
+    <p>After review, your appointment request was <span class="badge badge-red">not approved</span>.</p>
+    <div class="details">
+      <table>
+        <tr><td>Rejection Reason</td><td>{reason or "Not specified"}</td></tr>
+        {comment_html}
+        <tr><td>Clinic</td><td>{clinic_name}</td></tr>
+      </table>
+    </div>
+    <p>Please contact the clinic directly at <strong>{clinic_name}</strong></p>
+    <p>and our staff will be happy to assist you with alternative arrangements.</p>
+    <p style="color: #64748b; font-size: 13px;">Thank you,<br><strong>{clinic_name}</strong></p>
+    """
+    return subject, _base_html(body)
+
+
 def approval_rejected_email(
     patient_name: str,
     request_type: str,

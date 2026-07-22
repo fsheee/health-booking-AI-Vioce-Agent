@@ -14,21 +14,18 @@ from app.models.approval_request import ApprovalRequestType
 
 CONFIDENCE_THRESHOLD = 0.80
 
-# Symptoms that are urgent but phrased mildly enough to slip past the hard
-# emergency short-circuit — still worth a human look before booking around them.
-URGENT_SYMPTOM_PHRASES = [
-    "emergency",
-    "chest pain",
-    "chest tightness",
-    "breathing difficulty",
-    "difficulty breathing",
-    "can't breathe",
-    "cannot breathe",
-    "severe bleeding",
-    "bleeding heavily",
-    "severe pain",
+# Symptoms that suggest elevated medical risk but are not an immediate hard
+# emergency (those are caught by check_emergency() above). These are subtle
+# enough that a human should review before booking around them.
+# NOTE: Do NOT add trigger words like "emergency", "urgent", "ASAP" here —
+# those are handled by the LLM's HITL policy, not keyword-matched.
+ELEVATED_RISK_PHRASES = [
+    "persistent severe pain",
+    "severe dizziness",
     "fainted",
     "numbness",
+    "high-risk pregnancy",
+    "ongoing bleeding",
 ]
 
 LATE_CANCELLATION_WINDOW = timedelta(hours=24)
@@ -50,12 +47,12 @@ def assess_transcript(transcript: str) -> RiskDecision:
             reason="Emergency phrase detected in patient message",
         )
     lowered = transcript.lower()
-    for phrase in URGENT_SYMPTOM_PHRASES:
+    for phrase in ELEVATED_RISK_PHRASES:
         if phrase in lowered:
             return RiskDecision(
                 requires_approval=True,
                 request_type=ApprovalRequestType.urgent_symptoms,
-                reason=f"Urgent symptom mentioned: '{phrase}'",
+                reason=f"Elevated risk mentioned: '{phrase}'",
             )
     return RiskDecision(requires_approval=False)
 

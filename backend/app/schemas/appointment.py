@@ -34,3 +34,14 @@ class AppointmentResponse(BaseModel):
     notes: str | None = None
     created_at: datetime
     updated_at: datetime
+
+
+class AppointmentDetailResponse(AppointmentResponse):
+    doctor_name: str | None = None
+    specialization: str | None = None
+    patient_name: str | None = None
+
+
+class AppointmentReschedule(BaseModel):
+    scheduled_at: datetime
+    reason: str | None = None

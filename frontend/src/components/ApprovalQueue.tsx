@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { format } from "date-fns";
 import { api } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import { CheckCircle2, ShieldAlert, XCircle } from "lucide-react";
+import { CheckCircle2, ShieldAlert, XCircle, User, Stethoscope, Brain, Clock, AlertTriangle, Calendar } from "lucide-react";
 
 const TYPE_LABELS: Record<string, string> = {
   emergency_escalation: "Emergency Escalation",
@@ -45,7 +46,6 @@ export function ApprovalQueue() {
   const [loading, setLoading] = useState(true);
   const [showHistory, setShowHistory] = useState(false);
 
-  // Decision dialog state
   const [target, setTarget] = useState<any | null>(null);
   const [decision, setDecision] = useState<"approve" | "reject">("approve");
   const [comment, setComment] = useState("");
@@ -65,7 +65,6 @@ export function ApprovalQueue() {
 
   useEffect(() => {
     load();
-    // The AI queues requests in the background — keep the list fresh.
     const interval = setInterval(load, 30_000);
     return () => clearInterval(interval);
   }, [load]);
@@ -111,65 +110,105 @@ export function ApprovalQueue() {
         <CardContent className="p-0">
           {loading ? (
             <div className="space-y-2 p-4">
-              {[1, 2].map((i) => <Skeleton key={i} className="h-10 w-full" />)}
+              {[1, 2, 3].map((i) => <Skeleton key={i} className="h-12 w-full" />)}
             </div>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Reason Flagged</TableHead>
-                  <TableHead>AI Summary</TableHead>
-                  <TableHead>Requested</TableHead>
+                  <TableHead>Patient</TableHead>
+                  <TableHead>Doctor Requested</TableHead>
+                  <TableHead>Appointment Time</TableHead>
+                  <TableHead>Reason</TableHead>
+                  <TableHead>AI Confidence</TableHead>
+                  <TableHead>Escalation Reason</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Created</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {requests.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center text-muted-foreground">
+                    <TableCell colSpan={9} className="text-center text-muted-foreground">
                       {showHistory ? "No approval requests yet" : "No requests awaiting review"}
                     </TableCell>
                   </TableRow>
                 )}
-                {requests.map((r) => (
-                  <TableRow key={r.id}>
-                    <TableCell>
-                      <Badge variant={TYPE_VARIANT[r.request_type] || "secondary"}>
-                        {TYPE_LABELS[r.request_type] || r.request_type}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="max-w-56 truncate" title={r.reason || ""}>
-                      {r.reason || "—"}
-                    </TableCell>
-                    <TableCell className="max-w-64 truncate" title={r.ai_summary || ""}>
-                      {r.ai_summary || "—"}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap text-sm text-muted-foreground">
-                      {new Date(r.created_at).toLocaleString()}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={STATUS_VARIANT[r.status] || "default"}>{r.status}</Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {r.status === "pending" ? (
-                        <div className="flex justify-end gap-2">
-                          <Button size="sm" onClick={() => openDecision(r, "approve")}>
-                            <CheckCircle2 className="mr-1 h-4 w-4" /> Approve
-                          </Button>
-                          <Button size="sm" variant="destructive" onClick={() => openDecision(r, "reject")}>
-                            <XCircle className="mr-1 h-4 w-4" /> Reject
-                          </Button>
+                {requests.map((r) => {
+                  const action = r.requested_action || {};
+                  const doctorName = action.doctor_name || "—";
+                  const apptTime = action.scheduled_at
+                    ? format(new Date(action.scheduled_at), "MMM d, yyyy h:mm a")
+                    : "—";
+
+                  return (
+                    <TableRow key={r.id}>
+                      <TableCell>
+                        <div className="flex items-center gap-1.5">
+                          <User className="h-4 w-4 text-muted-foreground" />
+                          <span>{r.patient_name || "—"}</span>
                         </div>
-                      ) : (
-                        <span className="text-xs text-muted-foreground" title={r.reviewer_comment || ""}>
-                          {r.reviewer_comment ? `"${r.reviewer_comment}"` : "—"}
-                        </span>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1.5">
+                          <Stethoscope className="h-4 w-4 text-muted-foreground" />
+                          <span>{doctorName}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        <div className="flex items-center gap-1.5">
+                          <Calendar className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm">{apptTime}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="max-w-48 truncate" title={r.ai_summary || r.reason || ""}>
+                        <Badge variant={TYPE_VARIANT[r.request_type] || "secondary"} className="whitespace-nowrap">
+                          {TYPE_LABELS[r.request_type] || r.request_type}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1.5">
+                          <Brain className={`h-4 w-4 ${r.ai_confidence != null && r.ai_confidence < 0.8 ? "text-red-500" : "text-green-500"}`} />
+                          <span className={r.ai_confidence != null && r.ai_confidence < 0.8 ? "text-red-600 font-medium" : ""}>
+                            {r.ai_confidence != null ? `${Math.round(r.ai_confidence * 100)}%` : "—"}
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="max-w-40 truncate" title={r.reason || ""}>
+                        <div className="flex items-center gap-1.5">
+                          <AlertTriangle className="h-4 w-4 text-amber-500" />
+                          <span>{r.reason || "—"}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={STATUS_VARIANT[r.status] || "default"}>{r.status}</Badge>
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap text-sm text-muted-foreground">
+                        <div className="flex items-center gap-1.5">
+                          <Clock className="h-4 w-4" />
+                          <span>{format(new Date(r.created_at), "MMM d, h:mm a")}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {r.status === "pending" ? (
+                          <div className="flex justify-end gap-2">
+                            <Button size="sm" onClick={() => openDecision(r, "approve")}>
+                              <CheckCircle2 className="mr-1 h-4 w-4" /> Approve
+                            </Button>
+                            <Button size="sm" variant="destructive" onClick={() => openDecision(r, "reject")}>
+                              <XCircle className="mr-1 h-4 w-4" /> Reject
+                            </Button>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-muted-foreground" title={r.reviewer_comment || ""}>
+                            {r.reviewer_comment ? `"${r.reviewer_comment}"` : "—"}
+                          </span>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           )}
@@ -205,8 +244,14 @@ export function ApprovalQueue() {
                       <span className="text-muted-foreground">On approval:</span>{" "}
                       {target.requested_action.action.replace("_", " ")}
                       {target.requested_action.scheduled_at
-                        ? ` — ${new Date(target.requested_action.scheduled_at).toLocaleString()}`
+                        ? ` — ${format(new Date(target.requested_action.scheduled_at), "MMM d, yyyy h:mm a")}`
                         : ""}
+                    </p>
+                  )}
+                  {target.requested_action?.doctor_id && (
+                    <p>
+                      <span className="text-muted-foreground">Doctor ID:</span>{" "}
+                      <span className="font-mono text-xs">{target.requested_action.doctor_id.slice(0, 8)}...</span>
                     </p>
                   )}
                 </CardContent>

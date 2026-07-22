@@ -128,8 +128,12 @@ def test_voice_emergency_creates_hitl_queue_entry(mock_tts, mock_stt):
     mock_tts.return_value = b"audio"
 
     headers = _auth_headers()
-    patient = client.post("/api/v1/patients", json={"first_name": "Queue", "last_name": "Emerg"}, headers=headers).json()
-    session = client.post("/api/v1/voice/sessions", json={"patient_id": str(patient["id"])}, headers=headers).json()
+    patient = client.post(
+        "/api/v1/patients", json={"first_name": "Queue", "last_name": "Emerg"}, headers=headers
+    ).json()
+    session = client.post(
+        "/api/v1/voice/sessions", json={"patient_id": str(patient["id"])}, headers=headers
+    ).json()
 
     resp = client.post(
         "/api/v1/voice/process",
@@ -147,15 +151,20 @@ def test_voice_emergency_creates_hitl_queue_entry(mock_tts, mock_stt):
 @patch("app.api.v1.endpoints.voice.transcribe_audio")
 @patch("app.api.v1.endpoints.voice.process_transcript")
 @patch("app.api.v1.endpoints.voice.text_to_speech")
-def test_voice_urgent_request_escalates_without_calling_agent(mock_tts, mock_agent, mock_stt):
-    # Regression: "I need an emergency appointment" must be escalated
-    # deterministically by the risk engine — before Gemini is ever invoked.
+def test_emergency_appointment_phrase_does_not_escalate(mock_tts, mock_agent, mock_stt):
+    # Per HITL policy: "I need an emergency appointment" alone does NOT escalate.
+    # It should go to the agent for normal booking flow.
     mock_stt.return_value = "I need an emergency appointment"
     mock_tts.return_value = b"audio"
+    mock_agent.return_value = {"response": "Let me check availability for you.", "actions_taken": []}
 
     headers = _auth_headers()
-    patient = client.post("/api/v1/patients", json={"first_name": "Urgent", "last_name": "Test"}, headers=headers).json()
-    session = client.post("/api/v1/voice/sessions", json={"patient_id": str(patient["id"])}, headers=headers).json()
+    patient = client.post(
+        "/api/v1/patients", json={"first_name": "Urgent", "last_name": "Test"}, headers=headers
+    ).json()
+    session = client.post(
+        "/api/v1/voice/sessions", json={"patient_id": str(patient["id"])}, headers=headers
+    ).json()
 
     resp = client.post(
         "/api/v1/voice/process",
@@ -164,25 +173,16 @@ def test_voice_urgent_request_escalates_without_calling_agent(mock_tts, mock_age
     )
     assert resp.status_code == 200
     data = resp.json()
-    assert data["escalated"] is True
-    assert data["is_emergency"] is False
-    assert "escalating" in data["response"].lower()
+    assert data.get("is_emergency") is False
 
-    # the agent must never have been consulted
-    mock_agent.assert_not_called()
+    # the agent should be called (not short-circuited)
+    mock_agent.assert_called_once()
 
-    # the request landed in the staff approval queue
+    # no approval request should exist
     from app.models.approval_request import ApprovalRequestType
-
     requests = _approval_requests()
     urgent = [r for r in requests if r.request_type == ApprovalRequestType.urgent_symptoms]
-    assert len(urgent) == 1
-    assert urgent[0].status.value == "pending"
-    assert "emergency" in (urgent[0].reason or "").lower()
-
-    # the voice session itself is marked escalated
-    vs = client.get(f"/api/v1/voice/sessions/{session['id']}", headers=headers).json()
-    assert vs["escalated_to_human"] is True
+    assert len(urgent) == 0
 
 
 @patch("app.api.v1.endpoints.voice.transcribe_audio")
@@ -194,8 +194,12 @@ def test_voice_routine_request_is_not_escalated(mock_tts, mock_agent, mock_stt):
     mock_tts.return_value = b"audio"
 
     headers = _auth_headers()
-    patient = client.post("/api/v1/patients", json={"first_name": "Routine", "last_name": "Test"}, headers=headers).json()
-    session = client.post("/api/v1/voice/sessions", json={"patient_id": str(patient["id"])}, headers=headers).json()
+    patient = client.post(
+        "/api/v1/patients", json={"first_name": "Routine", "last_name": "Test"}, headers=headers
+    ).json()
+    session = client.post(
+        "/api/v1/voice/sessions", json={"patient_id": str(patient["id"])}, headers=headers
+    ).json()
 
     resp = client.post(
         "/api/v1/voice/process",

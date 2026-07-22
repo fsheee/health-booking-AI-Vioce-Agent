@@ -5,6 +5,7 @@ bubble up — the appointment lifecycle continues regardless of delivery status.
 """
 
 import smtplib
+from datetime import datetime
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from typing import TYPE_CHECKING
@@ -25,7 +26,11 @@ from app.services.email_templates import (
     approval_requested_email,
     cancellation_email,
     confirmation_email,
+    hitl_approved_email,
+    hitl_rejected_email,
+    hitl_under_review_email,
     reminder_email,
+    reschedule_email,
 )
 
 if TYPE_CHECKING:
@@ -153,6 +158,33 @@ def send_appointment_cancellation(session: Session, appointment: Appointment, or
     logger.info("Cancellation email sent — appt={id} | patient={p}", id=appointment.id, p=details["patient_name"])
 
 
+def send_appointment_rescheduled(
+    session: Session,
+    appointment: Appointment,
+    org_id: UUID,
+    old_scheduled_at: datetime | None = None,
+) -> None:
+    """Send a reschedule notification after an appointment is rescheduled."""
+    details = _lookup_appointment_details(session, appointment, org_id)
+    if not details:
+        return
+    old_date = old_scheduled_at.strftime("%A, %B %d, %Y") if old_scheduled_at else "—"
+    old_time = old_scheduled_at.strftime("%I:%M %p").lstrip("0") if old_scheduled_at else "—"
+    subject, html = reschedule_email(
+        patient_name=details["patient_name"],
+        doctor_name=details["doctor_name"],
+        specialization=details["specialization"],
+        old_date=old_date,
+        old_time=old_time,
+        new_date=details["appointment_date"],
+        new_time=details["appointment_time"],
+        appointment_id=details["appointment_id"],
+        clinic_name=details["clinic_name"],
+    )
+    _send_email(details["patient_email"], subject, html)
+    logger.info("Reschedule email sent — appt={id} | patient={p}", id=appointment.id, p=details["patient_name"])
+
+
 def _clinic_name(session: Session, org_id: UUID) -> str:
     org = session.get(Organization, org_id)
     return org.name if org else "Healthcare Clinic"
@@ -199,6 +231,97 @@ def send_approval_requested(session: Session, request: "ApprovalRequest") -> Non
         _send_email(member.email, subject, html)
     logger.info("Approval-requested emails sent — request={id} | staff_notified={n}",
                 id=request.id, n=len(staff))
+
+
+def send_hitl_under_review(session: Session, request: "ApprovalRequest") -> None:
+    """Notify the patient that their request is under review (HITL triggered)."""
+    from app.models.doctor import Doctor
+    from app.models.user import User
+
+    clinic_name = _clinic_name(session, request.org_id)
+    patient_name, patient_email = _patient_display(session, request.patient_id)
+    if not patient_email:
+        logger.warning("Patient email missing — HITL under-review not sent | request={id}", id=request.id)
+        return
+
+    action = request.requested_action or {}
+    doctor_name = None
+    if action.get("doctor_id"):
+        doctor = session.get(Doctor, UUID(action["doctor_id"]))
+        if doctor:
+            doctor_user = session.get(User, doctor.user_id)
+            doctor_name = doctor_user.full_name if doctor_user else None
+
+    reason_parts = [request.reason or "Routine review"]
+    if request.request_type.value:
+        type_label = request.request_type.value.replace("_", " ").title()
+        reason_parts.insert(0, f"[{type_label}]")
+    if doctor_name:
+        reason_parts.append(f" — Doctor: {doctor_name}")
+    full_reason = " ".join(reason_parts)
+
+    subject, html = hitl_under_review_email(
+        patient_name=patient_name,
+        reason=full_reason,
+        clinic_name=clinic_name,
+    )
+    _send_email(patient_email, subject, html)
+    logger.info("HITL under-review email sent — request={id} | patient={p}", id=request.id, p=patient_name)
+
+
+def send_hitl_approved(session: Session, request: "ApprovalRequest") -> None:
+    """Notify the patient that their HITL request was approved with details."""
+    from app.models.doctor import Doctor
+    from app.models.user import User
+
+    clinic_name = _clinic_name(session, request.org_id)
+    patient_name, patient_email = _patient_display(session, request.patient_id)
+    if not patient_email:
+        return
+
+    action = request.requested_action or {}
+    doctor_name = None
+    scheduled_at = None
+    if action.get("doctor_id"):
+        doctor = session.get(Doctor, UUID(action["doctor_id"]))
+        if doctor:
+            doctor_user = session.get(User, doctor.user_id)
+            doctor_name = doctor_user.full_name if doctor_user else None
+    if action.get("scheduled_at"):
+        try:
+            scheduled_at = datetime.fromisoformat(action["scheduled_at"])
+        except (ValueError, TypeError):
+            pass
+
+    appointment_date = scheduled_at.strftime("%A, %B %d, %Y") if scheduled_at else "—"
+    appointment_time = scheduled_at.strftime("%I:%M %p").lstrip("0") if scheduled_at else "—"
+
+    subject, html = hitl_approved_email(
+        patient_name=patient_name,
+        doctor_name=doctor_name or "Assigned Doctor",
+        appointment_date=appointment_date,
+        appointment_time=appointment_time,
+        clinic_name=clinic_name,
+    )
+    _send_email(patient_email, subject, html)
+    logger.info("HITL approved email sent — request={id} | patient={p}", id=request.id, p=patient_name)
+
+
+def send_hitl_rejected(session: Session, request: "ApprovalRequest") -> None:
+    """Notify the patient that their HITL request was rejected with reason."""
+    clinic_name = _clinic_name(session, request.org_id)
+    patient_name, patient_email = _patient_display(session, request.patient_id)
+    if not patient_email:
+        return
+
+    subject, html = hitl_rejected_email(
+        patient_name=patient_name,
+        reason=request.reason,
+        reviewer_comment=request.reviewer_comment,
+        clinic_name=clinic_name,
+    )
+    _send_email(patient_email, subject, html)
+    logger.info("HITL rejected email sent — request={id} | patient={p}", id=request.id, p=patient_name)
 
 
 def send_approval_decision(session: Session, request: "ApprovalRequest", approved: bool) -> None:

@@ -202,12 +202,20 @@ def book_appointment(
 
     send_appointment_confirmation(session, created, org_id)
 
-    # Schedule a reminder 24 hours before the appointment
-    reminder_at = _as_utc(created.scheduled_at) - timedelta(hours=24)
-    if reminder_at > datetime.now(timezone.utc):
-        reminder_repo = ReminderRepository(session)
-        existing = reminder_repo.list_by_appointment(created.id, org_id)
-        if not any(r.channel == ReminderChannel.email and r.type == ReminderType.appointment for r in existing):
+    # Schedule reminders: 24 hours and 1 hour before the appointment
+    now = datetime.now(timezone.utc)
+    reminder_service = ReminderService(session)
+    reminder_repo = ReminderRepository(session)
+    existing = reminder_repo.list_by_appointment(created.id, org_id)
+
+    for hours_before, label in [(24, "24h"), (1, "1h")]:
+        reminder_at = _as_utc(created.scheduled_at) - timedelta(hours=hours_before)
+        if reminder_at > now and not any(
+            r.channel == ReminderChannel.email
+            and r.type == ReminderType.appointment
+            and abs((r.scheduled_at - reminder_at).total_seconds()) < 3600
+            for r in existing
+        ):
             reminder = Reminder(
                 org_id=org_id,
                 appointment_id=created.id,
@@ -215,11 +223,11 @@ def book_appointment(
                 type=ReminderType.appointment,
                 channel=ReminderChannel.email,
                 scheduled_at=reminder_at,
-                message="Appointment reminder",
+                message=f"Appointment reminder ({label} before)",
             )
-            reminder_service = ReminderService(session)
             reminder_service.create_reminder(reminder)
-            logger.info("Reminder scheduled — appt={id} | at={at}", id=created.id, at=reminder_at.isoformat())
+            logger.info("Reminder scheduled — appt={id} | at={at} | label={label}",
+                        id=created.id, at=reminder_at.isoformat(), label=label)
 
     return BookAppointmentResponse(
         appointment_id=created.id,

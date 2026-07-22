@@ -10,7 +10,7 @@ from alembic import context
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from app.core.config import settings
-from app.models import *
+from app.models import *  # noqa: F403
 
 config = context.config
 config.set_main_option("sqlalchemy.url", settings.database_url)

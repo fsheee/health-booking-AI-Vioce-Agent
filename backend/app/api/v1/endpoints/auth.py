@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from passlib.context import CryptContext
+from pydantic import BaseModel
 from sqlmodel import Session, select
 
 from app.core.dependencies import get_current_user, get_session
@@ -9,7 +10,6 @@ from app.models.organization import Organization
 from app.models.patient import Patient
 from app.models.user import User, UserRole
 from app.schemas.auth import LoginRequest, SignupRequest, TokenResponse, UserResponse
-from pydantic import BaseModel
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 

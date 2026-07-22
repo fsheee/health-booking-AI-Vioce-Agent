@@ -85,13 +85,13 @@ PYTHONPATH=. PYTHONIOENCODING=utf-8 uv run python scripts/test_hitl_e2e.py
 - **Multi-tenancy** — every business table carries `org_id`; all queries are org-scoped at the service layer. No cross-organization access.
 - **RBAC** — `admin`, `doctor`, `front_desk`, `patient` roles enforced on every endpoint.
 - **AI voice assistant** — patient speech → AssemblyAI STT → Gemini → tool endpoints → NeonDB → HITL check → text reply in the UI. The LLM never touches the database directly; all actions go through `POST /api/v1/tools/*` endpoints.
-- **Medical safety** — the AI never diagnoses, prescribes, or gives emergency advice. Emergency phrases (chest pain, difficulty breathing, stroke symptoms, severe bleeding, loss of consciousness) short-circuit the agent entirely: the patient gets an emergency warning, staff are alerted, and the conversation is logged.
-- **Human-in-the-loop approvals** — a deterministic risk engine routes each requested action:
-  - *Auto-execute*: finding doctors, checking availability, routine booking/rescheduling, reminders.
-  - *Staff review required*: emergency/urgent symptom mentions, cancellations within 24 hours, VIP patients, double-booking conflicts, manual doctor assignment, AI confidence below 80%.
-
-  Flagged requests land in an approval queue on the front-desk dashboard. Approving executes the original deferred action (e.g. the booking); rejecting leaves no side effects. Every decision is audit-logged and triggers email notifications.
-- **Reminders & email** — appointment confirmations, cancellations, reminders, and approval-workflow notifications via SMTP (skipped gracefully when SMTP is unconfigured).
+- **Medical safety** — the AI never diagnoses, prescribes, or gives emergency advice. Three-tier triage:
+  - 🔴 *Hard emergency* (chest pain, difficulty breathing, stroke, seizures): short-circuits the LLM entirely — patient gets a 911 warning, staff are alerted, conversation is logged.
+  - 🟡 *HITL review* (persistent severe pain, severe dizziness, fainted, numbness, low AI confidence, double-booking, late cancellation within 24h, VIP): routed to the staff approval queue. Approving executes the original action; rejecting leaves no side effects. Every decision is audit-logged and triggers email notifications.
+  - 🟢 *Normal booking* (headache, stomach pain, cold, fever, routine checkups, etc.): auto-executes — find doctors, check availability, book directly.
+  - Key policy: trigger words like "urgent", "ASAP", "emergency appointment" do **not** trigger HITL on their own — only actual symptoms and context matter.
+- **Reminders & email** — appointment confirmations, cancellations, rescheduling, reminders, and HITL workflow notifications via SMTP (confirmation, under-review, approved, rejected). Gracefully skipped when SMTP is unconfigured.
+- **Audit logging** — every appointment create/cancel/reschedule, HITL decision, and reminder send is logged with actor, action, and timestamp.
 
 ## Structure
 
@@ -130,7 +130,7 @@ Layering rule: endpoint → service → repository → model. Don't skip layers.
 | `backend/docs/agent-logic.md` | Voice agent pipeline and tool-calling logic |
 | `backend/docs/email-notifications.md` | Email templates and triggers |
 | `CHANGES_SUMMARY.md` | Running log of fixes and features (incl. CORS fixes) |
-| `test_voice_simple.ps1` | PowerShell script for testing voice flow |
+| `ENHANCEMENTS.md` | Feature enhancements: appointment details, reschedule, HITL emails, audit log |
 
 ## Medical Disclaimer
 

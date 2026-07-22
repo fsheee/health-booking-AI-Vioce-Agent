@@ -18,6 +18,9 @@ from app.schemas.approval import ApprovalRequestCreate
 from app.services.email_service import (
     send_approval_decision,
     send_approval_requested,
+    send_hitl_approved,
+    send_hitl_rejected,
+    send_hitl_under_review,
 )
 
 
@@ -59,9 +62,10 @@ class ApprovalService:
             "Approval requested — id={id} | type={t} | reason={r}",
             id=request.id, t=request.request_type.value, r=request.reason,
         )
-        self._audit(org_id, submitted_by, "approval_requested", request,
+        self._audit(org_id, submitted_by, "hitl_created", request,
                     {"ai_summary": request.ai_summary, "ai_confidence": request.ai_confidence})
         send_approval_requested(self.session, request)
+        send_hitl_under_review(self.session, request)
         return request
 
     def get(self, request_id: UUID, org_id: UUID) -> ApprovalRequest | None:
@@ -91,9 +95,10 @@ class ApprovalService:
 
         logger.info("Approval granted — id={id} | by={u} | outcome={o}",
                     id=request.id, u=reviewer_id, o=outcome)
-        self._audit(org_id, reviewer_id, "approval_granted", request,
+        self._audit(org_id, reviewer_id, "hitl_approved", request,
                     {"comment": comment, "outcome": outcome})
         send_approval_decision(self.session, request, approved=True)
+        send_hitl_approved(self.session, request)
         return request
 
     def reject(
@@ -112,8 +117,9 @@ class ApprovalService:
         request = self.repo.update(request)
 
         logger.info("Approval rejected — id={id} | by={u}", id=request.id, u=reviewer_id)
-        self._audit(org_id, reviewer_id, "approval_rejected", request, {"comment": comment})
+        self._audit(org_id, reviewer_id, "hitl_rejected", request, {"comment": comment})
         send_approval_decision(self.session, request, approved=False)
+        send_hitl_rejected(self.session, request)
         return request
 
     def _execute_action(self, request: ApprovalRequest) -> dict:
@@ -158,6 +164,34 @@ class ApprovalService:
                     return {"executed": False, "note": "appointment not found"}
                 send_appointment_cancellation(self.session, appointment, request.org_id)
                 return {"executed": True, "appointment_id": str(appointment.id)}
+
+            if action_name == "reschedule_appointment":
+                from app.services.appointment_service import AppointmentService
+                from app.services.email_service import send_appointment_rescheduled
+
+                service = AppointmentService(self.session)
+                new_scheduled_at = action.get("scheduled_at")
+                if not new_scheduled_at:
+                    return {"executed": False, "note": "missing scheduled_at"}
+                from datetime import datetime
+                appointment = service.get_appointment(
+                    UUID(action["appointment_id"]), request.org_id
+                )
+                if not appointment:
+                    return {"executed": False, "note": "appointment not found"}
+                old_scheduled_at = appointment.scheduled_at
+                result = service.reschedule_appointment(
+                    UUID(action["appointment_id"]),
+                    request.org_id,
+                    datetime.fromisoformat(new_scheduled_at) if isinstance(new_scheduled_at, str) else new_scheduled_at,
+                    action.get("reason"),
+                )
+                if result:
+                    send_appointment_rescheduled(
+                        self.session, result, request.org_id,
+                        old_scheduled_at=old_scheduled_at,
+                    )
+                return {"executed": True, "appointment_id": str(action["appointment_id"])}
 
             return {"executed": False, "note": f"unknown action '{action_name}'"}
         except Exception as e:

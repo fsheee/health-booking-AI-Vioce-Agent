@@ -146,9 +146,9 @@ async def process_voice(
             "escalated": True,
         }
 
-    # HITL: urgent-but-not-emergency requests ("I need an emergency
-    # appointment", mild chest discomfort, …) are escalated deterministically —
-    # queued for staff review instead of relying on the model to self-escalate.
+    # HITL: elevated-risk symptoms that are not hard emergencies (persistent
+    # severe pain, severe dizziness, fainted, numbness, etc.) are escalated
+    # deterministically — queued for staff review.
     urgent = assess_transcript(transcript)
     if urgent.requires_approval:
         vs.transcription = transcript
