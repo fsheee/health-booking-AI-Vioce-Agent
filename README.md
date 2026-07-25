@@ -17,6 +17,8 @@ Speech Input (Patient Voice)
        ↓
   [Human-in-the-Loop] → Risk engine: auto-execute or staff approval queue
        ↓
+  [Email Notification] → SMTP with ICS calendar invites
+       ↓
 Text Response (UI)
 ```
 
@@ -29,6 +31,8 @@ Text Response (UI)
 | Database | PostgreSQL on NeonDB (Alembic migrations) |
 | Auth | Local JWT (python-jose) + bcrypt password hashing, role-based access control |
 | Voice AI | Google Gemini, AssemblyAI (STT) — text responses in the UI |
+| Email | SMTP (Gmail, any provider) with ICS calendar attachments |
+| Reminders | APScheduler-based worker (60s polling, two-tier: 24h + 1h) |
 | Deployment | Docker Compose (BE + DB), Vercel (FE) |
 
 ## Quick Start
@@ -74,11 +78,31 @@ uv run ruff check .          # lint
 PYTHONPATH=. PYTHONIOENCODING=utf-8 uv run python scripts/test_hitl_e2e.py
 ```
 
-## Voice Support
+Testing checklist: `backend/tests/TESTING_CHECKLIST.md` (91 test cases)
 
-- AssemblyAI Speech-to-Text
-- Voice-to-Text processing
-- Text-based responses
+## Email Notification System
+
+9 notification types sent via SMTP. Confirmation and reschedule emails include ICS (.ics) calendar attachments compatible with Google Calendar, Outlook, and Apple Calendar.
+
+| # | Event | Subject | Includes |
+|---|-------|---------|----------|
+| 1 | Appointment Confirmation | Appointment Confirmed | Patient, Doctor, Specialization, Date, Time, ID, Clinic Name/Phone/Address, Arrival instructions, **ICS invite** |
+| 2 | Appointment Cancellation | Appointment Cancelled | Doctor, Date, Time, Cancellation Reason, Contact message |
+| 3 | Appointment Rescheduled | Appointment Rescheduled | Previous ↓ New: Doctor, Date, Time, Reason, **ICS invite** |
+| 4 | Reminder (24h) | Appointment Reminder | Doctor, Specialization, Date, Time, Location, Reminder instructions |
+| 5 | Reminder (1h) | Upcoming Appointment Reminder | Doctor, Time, Clinic (brief) |
+| 6 | HITL Pending Review | Appointment Request Under Review | Status: Pending Review, Reason, Expected follow-up |
+| 7 | HITL Approved | Appointment Approved | Doctor, Date, Time, Final confirmation |
+| 8 | HITL Rejected | Appointment Request Update | Reason, Staff note, Next steps |
+| 9 | Emergency Escalation | Emergency Request Received | Escalated status, transcript, emergency warning |
+
+Each email uses a single reusable HTML template with:
+- Clinic name/logo, address, phone, email
+- Responsive inline CSS, mobile-friendly
+- Medical disclaimer in footer
+- Privacy notice
+
+Email failures are logged but never bubble up — the appointment lifecycle continues regardless of delivery status.
 
 ## Key Features
 
@@ -90,8 +114,11 @@ PYTHONPATH=. PYTHONIOENCODING=utf-8 uv run python scripts/test_hitl_e2e.py
   - 🟡 *HITL review* (persistent severe pain, severe dizziness, fainted, numbness, low AI confidence, double-booking, late cancellation within 24h, VIP): routed to the staff approval queue. Approving executes the original action; rejecting leaves no side effects. Every decision is audit-logged and triggers email notifications.
   - 🟢 *Normal booking* (headache, stomach pain, cold, fever, routine checkups, etc.): auto-executes — find doctors, check availability, book directly.
   - Key policy: trigger words like "urgent", "ASAP", "emergency appointment" do **not** trigger HITL on their own — only actual symptoms and context matter.
-- **Reminders & email** — appointment confirmations, cancellations, rescheduling, reminders, and HITL workflow notifications via SMTP (confirmation, under-review, approved, rejected). Gracefully skipped when SMTP is unconfigured.
-- **Audit logging** — every appointment create/cancel/reschedule, HITL decision, and reminder send is logged with actor, action, and timestamp.
+- **Email notifications** — appointment confirmations (with ICS), cancellations, reschedules (with ICS), two-tier reminders (24h + 1h), HITL under-review/approved/rejected, and emergency escalation. Gracefully skipped when SMTP is unconfigured.
+- **Reminders** — APScheduler-based worker polls every 60s. Two-tier: 24-hour reminder (full details + instructions) and 1-hour reminder (brief). Deduplication prevents double-sending.
+- **Audit logging** — every appointment create/cancel/reschedule, HITL decision, and reminder send is logged with actor, action, org scope, and timestamp.
+- **Patient dashboard** — upcoming appointment cards with Doctor, Specialization, Date, Time, Reason, Status, Cancel and Reschedule buttons. Past appointments auto-filtered.
+- **Front desk HITL dashboard** — full approval queue table with Patient, Doctor Requested, Time, Reason, AI Confidence, Escalation Reason, Status, Created, and Approve/Reject buttons.
 
 ## Structure
 
@@ -99,14 +126,16 @@ PYTHONPATH=. PYTHONIOENCODING=utf-8 uv run python scripts/test_hitl_e2e.py
 backend/        # FastAPI + SQLModel
   app/
     api/v1/endpoints/   # auth, patients, doctors, appointments, voice, tools, approvals
-    models/             # 9 SQLModel tables (incl. approval_requests)
+    models/             # 9 SQLModel tables (incl. approval_requests, reminders)
     repositories/       # Data access layer
-    services/           # Business logic (incl. risk_engine, approval_service)
+    services/           # Business logic (risk_engine, approval_service, email_service,
+                        # calendar_service, reminder_worker, email_templates)
     agent/              # Gemini integration, STT/TTS, emergency detection
     schemas/            # Pydantic request/response models
     core/               # Config, security, dependencies
   alembic/              # Database migrations
   scripts/              # Seed + E2E scripts
+  tests/                # Test suite + TESTING_CHECKLIST.md
   docs/                 # Feature docs (see below)
 frontend/       # Next.js 15
   src/
@@ -119,7 +148,7 @@ Layering rule: endpoint → service → repository → model. Don't skip layers.
 
 ## Database Tables
 
-`organizations`, `users`, `doctors`, `patients`, `appointments`, `voice_sessions`, `reminders`, `audit_logs`, `approval_requests` — all business tables have `id` (UUID PK), `org_id` (FK), `created_at`, `updated_at`.
+`organizations` (with phone, address, email), `users`, `doctors`, `patients`, `appointments`, `voice_sessions`, `reminders`, `audit_logs`, `approval_requests` — all business tables have `id` (UUID PK), `org_id` (FK), `created_at`, `updated_at`.
 
 ## Documentation
 
@@ -129,8 +158,9 @@ Layering rule: endpoint → service → repository → model. Don't skip layers.
 | `backend/docs/hitl-approvals.md` | HITL approval workflow: decision rules, schema, API, agent behavior |
 | `backend/docs/agent-logic.md` | Voice agent pipeline and tool-calling logic |
 | `backend/docs/email-notifications.md` | Email templates and triggers |
-| `CHANGES_SUMMARY.md` | Running log of fixes and features (incl. CORS fixes) |
-| `ENHANCEMENTS.md` | Feature enhancements: appointment details, reschedule, HITL emails, audit log |
+| `backend/tests/TESTING_CHECKLIST.md` | 91 test cases for all features |
+| `CHANGES_SUMMARY.md` | Running log of fixes and features |
+| `ENHANCEMENTS.md` | Feature enhancements |
 
 ## Medical Disclaimer
 

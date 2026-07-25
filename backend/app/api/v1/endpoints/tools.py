@@ -10,6 +10,7 @@ from app.core.dependencies import get_current_user, get_session
 from app.models.approval_request import ApprovalRequestType
 from app.models.reminder import Reminder, ReminderChannel, ReminderType
 from app.repositories.appointment_repo import AppointmentRepository
+from app.repositories.doctor_repo import DoctorRepository
 from app.repositories.patient_repo import PatientRepository
 from app.repositories.reminder_repo import ReminderRepository
 from app.schemas.approval import ApprovalRequestCreate
@@ -140,12 +141,25 @@ def book_appointment(
     patient_id = _resolve_patient_id(session, payload, data.patient_id)
     service = AppointmentService(session)
 
+    # Validate that doctor_id refers to a real doctor in this org.
+    doctor = DoctorRepository(session).get_by_id(data.doctor_id, org_id)
+    if not doctor:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Doctor {data.doctor_id} not found in this organization. "
+                   "Use find_doctors to get a valid doctor_id before booking.",
+        )
+
+    # Coerce scheduled_at to timezone-aware UTC — the DB column is
+    # DateTime(timezone=True) and psycopg3 rejects naive datetimes.
+    scheduled_at = _as_utc(data.scheduled_at)
+
     # --- HITL decision engine: auto-execute vs human approval ---------------
     patient = PatientRepository(session).get_by_id(patient_id, org_id)
     slot_taken = any(
-        _as_utc(a.scheduled_at) == _as_utc(data.scheduled_at)
+        _as_utc(a.scheduled_at) == scheduled_at
         for a in service.repo.get_doctor_slots(
-            data.doctor_id, org_id, data.scheduled_at, data.scheduled_at
+            data.doctor_id, org_id, scheduled_at, scheduled_at
         )
     )
     decision = assess_booking(
@@ -168,7 +182,7 @@ def book_appointment(
                     "action": "book_appointment",
                     "patient_id": str(patient_id),
                     "doctor_id": str(data.doctor_id),
-                    "scheduled_at": data.scheduled_at.isoformat(),
+                    "scheduled_at": scheduled_at.isoformat(),
                     "reason": data.reason,
                 },
             ),
@@ -191,7 +205,9 @@ def book_appointment(
 
     from app.schemas.appointment import AppointmentCreate
     payload_data = AppointmentCreate(
-        **data.model_dump(exclude={"patient_id", "ai_confidence"}), patient_id=patient_id
+        **data.model_dump(exclude={"patient_id", "ai_confidence", "scheduled_at"}),
+        patient_id=patient_id,
+        scheduled_at=scheduled_at,
     )
     created = service.create_appointment(org_id, payload_data)
 

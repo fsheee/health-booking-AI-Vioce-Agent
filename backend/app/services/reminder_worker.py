@@ -20,7 +20,7 @@ def send_email(reminder: Reminder) -> bool:
         with Session(engine) as session:
             appointment = session.get(Appointment, reminder.appointment_id)
             if appointment:
-                _send_email_reminder(session, appointment, reminder.org_id)
+                _send_email_reminder(session, appointment, reminder.org_id, reminder=reminder)
                 logger.info("Reminder email sent — reminder={id}", id=reminder.id)
             else:
                 logger.warning("Appointment not found for reminder {id}", id=reminder.id)

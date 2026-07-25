@@ -114,7 +114,8 @@ def reschedule_appointment(
     if not result:
         raise HTTPException(status_code=404, detail="Appointment not found")
 
-    send_appointment_rescheduled(session, result, org_id, old_scheduled_at=old_scheduled_at)
+    send_appointment_rescheduled(session, result, org_id, old_scheduled_at=old_scheduled_at,
+                                reason=data.reason or "")
     logger.info("Appointment rescheduled — id={id} | old={old} | new={new}",
                 id=appointment_id, old=old_scheduled_at.isoformat(), new=data.scheduled_at.isoformat())
 
@@ -175,6 +176,6 @@ def cancel_appointment(
     appointment = service.cancel_appointment(appointment_id, org_id)
 
     logger.info("Appointment cancelled — id={id}", id=appointment_id)
-    send_appointment_cancellation(session, appointment, org_id)
+    send_appointment_cancellation(session, appointment, org_id, reason=appointment.reason or "")
 
     return {"message": "Appointment cancelled"}

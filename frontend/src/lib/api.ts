@@ -81,6 +81,9 @@ export const api = {
         body: JSON.stringify({ comment: comment || null }),
       }),
   },
+  dashboard: {
+    get: () => request<any>("/dashboard"),
+  },
   voice: {
     startSession: (patient_id: string) =>
       request<any>("/voice/sessions", {

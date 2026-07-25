@@ -127,7 +127,7 @@ async def process_voice(
         # HITL: emergencies also land in the staff approval queue so a human
         # sees and acts on the escalation, not just the audit log.
         approval_service = ApprovalService(session)
-        approval_service.submit(
+        request = approval_service.submit(
             org_id,
             user_id,
             ApprovalRequestCreate(
@@ -137,6 +137,9 @@ async def process_voice(
                 ai_summary=f"Patient said: {transcript!r}. Emergency response was given; human follow-up required.",
             ),
         )
+
+        from app.services.email_service import send_emergency_escalation
+        send_emergency_escalation(session, request)
 
         return {
             "transcript": transcript,
