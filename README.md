@@ -141,6 +141,21 @@ The backend auto-detects the Vercel environment and logs to `stderr` instead of 
 
 Locally, logs are written to `backend/logs/app.log` and printed to the console.
 
+### Doctor Schedule (CSV)
+
+Doctor availability is managed via `backend/data/doctor_schedule.csv` — edit this file in Excel to update working days and hours. The AI agent reads it through the `get_doctor_schedule` tool before checking availability.
+
+Format:
+
+| doctor_name | specialty | day | start_time | end_time |
+|-------------|-----------|-----|------------|----------|
+| Dr. Ali khan | General Physician | Monday | 09:00 | 17:00 |
+| Dr. Ali khan | General Physician | Saturday | 10:00 | 14:00 |
+| Azam Malik | Cardiology | Monday | 09:00 | 17:00 |
+| Sara | Neurology | Monday | 10:00 | 16:00 |
+
+Agent flow: `find_doctors` → **`get_doctor_schedule`** → `check_availability` → `book_appointment`.
+
 ## Email Notification System
 
 9 notification types sent via SMTP. Confirmation and reschedule emails include ICS (.ics) calendar attachments compatible with Google Calendar, Outlook, and Apple Calendar.
