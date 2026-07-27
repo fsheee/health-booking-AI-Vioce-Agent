@@ -123,11 +123,22 @@
 | 10.5 | Hindi input | Speak in Hindi | Agent understands, responds in English | |
 | 10.6 | Patient history | "What are my appointments?" | get_patient_history returns list | |
 
-## 11. Error Handling
+## 11. Doctor Schedule (CSV Tool)
 
 | # | Test | Steps | Expected Result | Pass/Fail |
 |---|------|-------|-----------------|-----------|
-| 11.1 | Invalid doctor_id returns 400 | POST with fake UUID | 400 + clear error message | |
-| 11.2 | Missing required fields | POST without `doctor_id` | 422 validation error | |
-| 11.3 | Email failure is non-blocking | SMTP server down | Booking succeeds, email logged as failed | |
-| 11.4 | Naive datetime in request | Send datetime without timezone | Coerced to UTC, stored correctly | |
+| 11.1 | Get schedule by doctor name | POST `/api/v1/tools/get_doctor_schedule` with `doctor_name="Ali"` | Returns matching rows from CSV | |
+| 11.2 | Get schedule by specialty | POST with `specialty="Cardiology"` | Only cardiologist rows returned | |
+| 11.3 | Get schedule no filter | POST with empty body | Returns all schedule entries | |
+| 11.4 | Agent calls schedule before availability | Speak "Book with Dr. Ali tomorrow" | Agent calls get_doctor_schedule before check_availability | |
+| 11.5 | Agent respects off-days | Ask for Saturday when doctor doesn't work | Agent only suggests days from schedule | |
+| 11.6 | CSV file missing | Delete/rename CSV | Endpoint returns empty list, no crash | |
+
+## 12. Error Handling
+
+| # | Test | Steps | Expected Result | Pass/Fail |
+|---|------|-------|-----------------|-----------|
+| 12.1 | Invalid doctor_id returns 400 | POST with fake UUID | 400 + clear error message | |
+| 12.2 | Missing required fields | POST without `doctor_id` | 422 validation error | |
+| 12.3 | Email failure is non-blocking | SMTP server down | Booking succeeds, email logged as failed | |
+| 12.4 | Naive datetime in request | Send datetime without timezone | Coerced to UTC, stored correctly | |
