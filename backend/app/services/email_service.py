@@ -375,6 +375,7 @@ def send_hitl_under_review(session: Session, request: "ApprovalRequest") -> None
 
 
 def send_hitl_approved(session: Session, request: "ApprovalRequest") -> None:
+    from app.models.appointment import Appointment
     from app.models.doctor import Doctor
     from app.models.user import User
 
@@ -383,26 +384,45 @@ def send_hitl_approved(session: Session, request: "ApprovalRequest") -> None:
     if not patient_email:
         return
 
-    action = request.requested_action or {}
+    # Prefer the actual appointment (already created by _execute_action)
+    # over the deferred-action metadata for accurate details.
     doctor_name = None
-    scheduled_at = None
-    if action.get("doctor_id"):
-        doctor = session.get(Doctor, UUID(action["doctor_id"]))
-        if doctor:
-            doctor_user = session.get(User, doctor.user_id)
-            doctor_name = doctor_user.full_name if doctor_user else None
-    if action.get("scheduled_at"):
-        try:
-            scheduled_at = datetime.fromisoformat(action["scheduled_at"])
-        except (ValueError, TypeError):
-            pass
+    appointment_date = "—"
+    appointment_time = "—"
 
-    appointment_date = scheduled_at.strftime("%A, %B %d, %Y") if scheduled_at else "—"
-    appointment_time = scheduled_at.strftime("%I:%M %p").lstrip("0") if scheduled_at else "—"
+    if request.appointment_id:
+        apt = session.get(Appointment, request.appointment_id)
+        if apt:
+            doctor = session.get(Doctor, apt.doctor_id)
+            if doctor:
+                doctor_user = session.get(User, doctor.user_id)
+                doctor_name = doctor_user.full_name if doctor_user else None
+            if apt.scheduled_at:
+                appointment_date = apt.scheduled_at.strftime("%A, %B %d, %Y")
+                appointment_time = apt.scheduled_at.strftime("%I:%M %p").lstrip("0")
+
+    if not doctor_name:
+        # Fallback to deferred-action metadata (approvals not linked to an appointment).
+        action = request.requested_action or {}
+        if action.get("doctor_id"):
+            doctor = session.get(Doctor, UUID(action["doctor_id"]))
+            if doctor:
+                doctor_user = session.get(User, doctor.user_id)
+                doctor_name = doctor_user.full_name if doctor_user else None
+        if not appointment_date or appointment_date == "—":
+            if action.get("scheduled_at"):
+                try:
+                    scheduled_at = datetime.fromisoformat(action["scheduled_at"])
+                    appointment_date = scheduled_at.strftime("%A, %B %d, %Y") if scheduled_at else "—"
+                    appointment_time = scheduled_at.strftime("%I:%M %p").lstrip("0") if scheduled_at else "—"
+                except (ValueError, TypeError):
+                    pass
+
+    doctor_name = doctor_name or "Assigned Doctor"
 
     subject, html = hitl_approved_email(
         patient_name=patient_name,
-        doctor_name=doctor_name or "Assigned Doctor",
+        doctor_name=doctor_name,
         appointment_date=appointment_date,
         appointment_time=appointment_time,
         clinic_name=clinic["clinic_name"],

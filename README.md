@@ -58,13 +58,16 @@ npm install
 npm run dev
 ```
 
-Open http://localhost:3000.
+Open local http://localhost:3000.
+frontend deployed https://health-appoinment-ai-voice-agent.vercel.app
 
 ### Database
 
 ```bash
 cd backend
 uv run alembic upgrade head
+
+
 ```
 
 ### Tests & Lint
@@ -73,12 +76,34 @@ uv run alembic upgrade head
 cd backend
 uv run pytest                # test suite
 uv run ruff check .          # lint
-
+backeend deployed https://voice-agent-health-booking.vercel.app/docs
 # HITL end-to-end smoke test (runs against the configured database)
 PYTHONPATH=. PYTHONIOENCODING=utf-8 uv run python scripts/test_hitl_e2e.py
 ```
 
 Testing checklist: `backend/tests/TESTING_CHECKLIST.md` (91 test cases)
+
+## Deployment (Vercel)
+
+### Required Environment Variables
+
+Set these in your Vercel project dashboard (Production + Preview):
+
+| Variable | Example | Description |
+|----------|---------|-------------|
+| `DATABASE_URL` | `postgresql://...` | NeonDB connection string |
+| `JWT_SECRET` | `random-64-char-hex` | Secret for signing JWT tokens |
+| `GEMINI_API_KEY` | `...` | Google Gemini API key |
+| `ASSEMBLYAI_API_KEY` | `...` | AssemblyAI API key |
+| `FRONTEND_URL` | `https://my-app.vercel.app` | Frontend URL (added to CORS allowlist) |
+| `CORS_ORIGINS` | `["https://my-app.vercel.app","http://localhost:3000"]` | Allowed CORS origins (JSON array) |
+| `VERCEL_FRONTEND_URL` | `my-app.vercel.app` | Short frontend URL (auto-prepends `https://`) |
+
+### Logging on Vercel
+
+The backend auto-detects the Vercel environment and logs to `stderr` instead of writing to the filesystem (which is read-only on AWS Lambda). Logs appear in the Vercel dashboard under **Functions** → **Logs**.
+
+Locally, logs are written to `backend/logs/app.log` and printed to the console.
 
 ## Email Notification System
 
