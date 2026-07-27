@@ -45,14 +45,10 @@ uv sync
 uv sync --extra dev
 uv run uvicorn app.main:app --reload
 ```
-
 Open [http://localhost:8000/docs](http://localhost:8000/docs) for Swagger UI.
-
-
-
-Backend deployed: [https://voice-agent-health-booking.vercel.app/docs](https://voice-agent-health-booking.vercel.app/docs)
-
 > Use `uv` for all Python dependency management — never pip or poetry.
+
+**Backend deployed:** [https://voice-agent-health-booking.vercel.app/docs](https://voice-agent-health-booking.vercel.app/docs)
 
 ### Frontend
 
@@ -64,7 +60,7 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000) locally.
 
-Frontend deployed: [https://health-appoinment-ai-voice-agent.vercel.app](https://health-appoinment-ai-voice-agent.vercel.app)
+**Frontend deployed:** [https://health-appoinment-ai-voice-agent.vercel.app](https://health-appoinment-ai-voice-agent.vercel.app)
 
 ### Database
 
