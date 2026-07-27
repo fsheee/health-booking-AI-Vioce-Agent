@@ -48,6 +48,10 @@ uv run uvicorn app.main:app --reload
 
 Open [http://localhost:8000/docs](http://localhost:8000/docs) for Swagger UI.
 
+
+
+Backend deployed: [https://voice-agent-health-booking.vercel.app/docs](https://voice-agent-health-booking.vercel.app/docs)
+
 > Use `uv` for all Python dependency management — never pip or poetry.
 
 ### Frontend
@@ -59,6 +63,7 @@ npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) locally.
+
 Frontend deployed: [https://health-appoinment-ai-voice-agent.vercel.app](https://health-appoinment-ai-voice-agent.vercel.app)
 
 ### Database
@@ -80,7 +85,7 @@ uv run ruff check .          # lint
 PYTHONPATH=. PYTHONIOENCODING=utf-8 uv run python scripts/test_hitl_e2e.py
 ```
 
-Backend deployed: [https://voice-agent-health-booking.vercel.app/docs](https://voice-agent-health-booking.vercel.app/docs)
+
 
 Testing checklist: `backend/tests/TESTING_CHECKLIST.md` (91 test cases)
 
