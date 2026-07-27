@@ -76,10 +76,11 @@ uv run alembic upgrade head
 cd backend
 uv run pytest                # test suite
 uv run ruff check .          # lint
-Backend deployed: [https://voice-agent-health-booking.vercel.app/docs](https://voice-agent-health-booking.vercel.app/docs)
 # HITL end-to-end smoke test (runs against the configured database)
 PYTHONPATH=. PYTHONIOENCODING=utf-8 uv run python scripts/test_hitl_e2e.py
 ```
+
+Backend deployed: [https://voice-agent-health-booking.vercel.app/docs](https://voice-agent-health-booking.vercel.app/docs)
 
 Testing checklist: `backend/tests/TESTING_CHECKLIST.md` (91 test cases)
 
