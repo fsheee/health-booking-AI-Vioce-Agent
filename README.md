@@ -145,25 +145,7 @@ Locally, logs are written to `backend/logs/app.log` and printed to the console.
 
 Doctor availability is managed via `backend/data/doctor_schedule.csv` — edit this file in Excel to update working days and hours. The AI agent reads it through the `get_doctor_schedule` tool before checking availability.
 
-```csv
-doctor_name,specialty,day,start_time,end_time
-Dr. Ali khan,General Physician,Monday,09:00,17:00
-Dr. Ali khan,General Physician,Tuesday,09:00,17:00
-Dr. Ali khan,General Physician,Wednesday,09:00,17:00
-Dr. Ali khan,General Physician,Thursday,09:00,17:00
-Dr. Ali khan,General Physician,Friday,09:00,17:00
-Dr. Ali khan,General Physician,Saturday,10:00,14:00
-Azam Malik,Cardiology,Monday,09:00,17:00
-Azam Malik,Cardiology,Tuesday,09:00,17:00
-Azam Malik,Cardiology,Wednesday,09:00,17:00
-Azam Malik,Cardiology,Thursday,09:00,17:00
-Azam Malik,Cardiology,Friday,09:00,17:00
-Sara,Neurology,Monday,10:00,16:00
-Sara,Neurology,Tuesday,10:00,16:00
-Sara,Neurology,Wednesday,10:00,16:00
-Sara,Neurology,Thursday,10:00,16:00
-Sara,Neurology,Friday,10:00,16:00
-```
+
 
 Agent flow: `find_doctors` → **`get_doctor_schedule`** → `check_availability` → `book_appointment`.
 
