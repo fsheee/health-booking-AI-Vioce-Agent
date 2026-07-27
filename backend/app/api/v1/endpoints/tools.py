@@ -1,4 +1,6 @@
+import csv
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -129,6 +131,28 @@ def check_availability(
     slots = service.get_doctor_availability(data.doctor_id, org_id, data.date)
     available = slots[0]["slots"] if slots else []
     return CheckAvailabilityResponse(available_slots=available)
+
+
+_SCHEDULE_CSV = Path(__file__).resolve().parents[4] / "data" / "doctor_schedule.csv"
+
+
+def _load_doctor_schedule() -> list[dict]:
+    if not _SCHEDULE_CSV.exists():
+        logger.warning("Doctor schedule CSV not found at {path}", path=_SCHEDULE_CSV)
+        return []
+    with _SCHEDULE_CSV.open(encoding="utf-8") as f:
+        return list(csv.DictReader(f))
+
+
+@router.post("/get_doctor_schedule")
+def get_doctor_schedule(data: GetDoctorScheduleRequest) -> GetDoctorScheduleResponse:
+    """Return the weekly schedule for a doctor by name or specialty from the CSV."""
+    schedule = _load_doctor_schedule()
+    if data.doctor_name:
+        schedule = [r for r in schedule if data.doctor_name.lower() in r["doctor_name"].lower()]
+    if data.specialty:
+        schedule = [r for r in schedule if data.specialty.lower() in r["specialty"].lower()]
+    return GetDoctorScheduleResponse(schedule=schedule)
 
 
 @router.post("/book_appointment", response_model=BookAppointmentResponse)

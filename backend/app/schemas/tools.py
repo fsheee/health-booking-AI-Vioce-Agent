@@ -93,3 +93,20 @@ class SubmitForApprovalResponse(BaseModel):
     approval_request_id: UUID
     status: str
     message: str
+
+
+class GetDoctorScheduleRequest(BaseModel):
+    doctor_name: str | None = None
+    specialty: str | None = None
+
+
+class ScheduleEntry(BaseModel):
+    doctor_name: str
+    specialty: str
+    day: str
+    start_time: str
+    end_time: str
+
+
+class GetDoctorScheduleResponse(BaseModel):
+    schedule: list[ScheduleEntry]

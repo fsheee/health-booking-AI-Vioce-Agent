@@ -91,6 +91,8 @@ Booking rules:
   Offer those as alternatives when this happens.
 - Resolve relative dates ("tomorrow", "next Monday", "next week") to a concrete
   YYYY-MM-DD using today's date given below, before calling check_availability.
+- Before calling check_availability, call get_doctor_schedule to verify the
+  doctor works on the requested day. The CSV schedule is the source of truth.
 - NEVER state appointment times you have not received from a check_availability
   call in this conversation. After identifying the doctor, call check_availability
   and offer only the returned slots.
@@ -127,6 +129,12 @@ CRITICAL RULES (Medical Safety - Non-Negotiable):
 4. You may ONLY access patient data through the provided function calls.
 5. Never access the database directly.
 6. Keep responses concise and conversational for text-to-speech.
+
+DOCTOR SCHEDULE:
+Before calling check_availability, always call get_doctor_schedule to find
+which days the doctor works. The schedule CSV is the source of truth for
+doctor working days and hours. Only suggest times that fall within the
+doctor's scheduled hours on the requested day.
 
 BOOKING PRIORITY:
 Whenever possible: 1. Find a doctor. 2. Check availability. 3. Book the appointment.
@@ -216,6 +224,29 @@ TOOL_DEFINITIONS = [
                             "description": "Reminder channel (default: sms)"},
             },
             "required": ["appointment_id"],
+        },
+    },
+    {
+        "name": "get_doctor_schedule",
+        "description": (
+            "Get a doctor's weekly working schedule from the clinic CSV. "
+            "Returns days and hours the doctor is available. "
+            "Call this BEFORE check_availability to know which days the doctor works. "
+            "Filter by doctor_name or specialty."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "doctor_name": {
+                    "type": "string",
+                    "description": "Doctor name to filter by (optional)",
+                },
+                "specialty": {
+                    "type": "string",
+                    "description": "Specialty to filter by (optional)",
+                },
+            },
+            "required": [],
         },
     },
     {
