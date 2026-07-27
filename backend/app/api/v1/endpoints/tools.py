@@ -23,6 +23,8 @@ from app.schemas.tools import (
     CheckAvailabilityResponse,
     DoctorSummary,
     FindDoctorsRequest,
+    GetDoctorScheduleRequest,
+    GetDoctorScheduleResponse,
     FindDoctorsResponse,
     GetPatientHistoryRequest,
     GetPatientHistoryResponse,
