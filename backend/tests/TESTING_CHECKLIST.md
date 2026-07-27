@@ -14,67 +14,67 @@
 
 | # | Test | Steps | Expected Result | Pass/Fail |
 |---|------|-------|-----------------|-----------|
-| 1.1 | Normal booking (admin) | POST `/api/v1/appointments` with valid data | 201 + appointment returned | |
-| 1.2 | Normal booking (front desk) | Same via front desk dashboard | 201 + appointment returned | |
-| 1.3 | Booking via voice agent | Speak "Book appointment with cardiologist tomorrow at 10 AM" | Agent calls find_doctors → check_availability → book_appointment | |
+| 1.1 | Normal booking (admin) | POST `/api/v1/appointments` with valid data | 201 + appointment returned | Pass |
+| 1.2 | Normal booking (front desk) | Same via front desk dashboard | 201 + appointment returned | Pass |
+| 1.3 | Booking via voice agent | Speak "Book appointment with cardiologist tomorrow at 10 AM" | Agent calls find_doctors → check_availability → book_appointment | Pass |
 | 1.4 | Duplicate slot booking | Book same doctor+time twice | Slot marked as taken, HITL triggered for second | |
-| 1.5 | Booking with invalid doctor_id | POST with fake UUID | 400 "Doctor not found" (not 500) | |
+| 1.5 | Booking with invalid doctor_id | POST with fake UUID | 400 "Doctor not found" (not 500) | Pass |
 
 ## 2. Email Notifications
 
 | # | Test | Trigger | Expected Subject | Expected Fields | Pass/Fail |
 |---|------|---------|------------------|-----------------|-----------|
-| 2.1 | Confirmation email | Book appointment successfully | "Appointment Confirmed" | Patient Name, Doctor, Specialization, Date, Time, Appointment ID, Clinic Name, Phone, Address, Arrival instructions | |
-| 2.2 | Confirmation has ICS | Check email attachment | `.ics` file attached | Can add to Google Calendar / Outlook / Apple Calendar | |
-| 2.3 | Cancellation email | Cancel an appointment | "Appointment Cancelled" | Doctor, Date, Time, Cancellation Reason, Contact message | |
-| 2.4 | Reschedule email | Reschedule an appointment | "Appointment Rescheduled" | Previous → New: Doctor, Date, Time, Reason | |
-| 2.5 | Reschedule has ICS | Check email attachment | `.ics` file with *new* date/time | | |
-| 2.6 | 24h reminder | Reminder triggers 24h before | "Appointment Reminder" | Doctor, Specialization, Date, Time, Location, Reminder instructions (arrive 10 min early, bring ID) | |
-| 2.7 | 1h reminder | Reminder triggers 1h before | "Upcoming Appointment Reminder" | Doctor, Time, Clinic (brief) | |
-| 2.8 | HITL pending (patient) | Submit request needing human review | "Appointment Request Under Review" | Status: Pending Review, Reason, Expected follow-up | |
-| 2.9 | HITL pending (staff) | Same request triggers staff email | "Action Required: Approval Request Pending" | Patient, Request Type, Reason Flagged, AI Summary, AI Confidence | |
-| 2.10 | HITL approved | Front desk approves request | "Appointment Approved" | Doctor, Date, Time, Final confirmation | |
-| 2.11 | HITL rejected | Front desk rejects request | "Appointment Request Update" | Reason, Staff Note, Next steps (contact clinic) | |
-| 2.12 | Emergency escalation | Speak "I have chest pain" to voice agent | "Emergency Request Received" | Escalated status, transcript, emergency warning | |
-| 2.13 | SMTP not configured | Disable SMTP settings in .env | Email logged as warning (not crashed) | No 500 error, booking still succeeds | |
+| 2.1 | Confirmation email | Book appointment successfully | "Appointment Confirmed" | Patient Name, Doctor, Specialization, Date, Time, Appointment ID, Clinic Name, Phone, Address, Arrival instructions | Pass |
+| 2.2 | Confirmation has ICS | Check email attachment | `.ics` file attached | Can add to Google Calendar / Outlook / Apple Calendar | Pass |
+| 2.3 | Cancellation email | Cancel an appointment | "Appointment Cancelled" | Doctor, Date, Time, Cancellation Reason, Contact message | Pass |
+| 2.4 | Reschedule email | Reschedule an appointment | "Appointment Rescheduled" | Previous → New: Doctor, Date, Time, Reason | Pass |
+| 2.5 | Reschedule has ICS | Check email attachment | `.ics` file with *new* date/time | | Pass |
+| 2.6 | 24h reminder | Reminder triggers 24h before | "Appointment Reminder" | Doctor, Specialization, Date, Time, Location, Reminder instructions (arrive 10 min early, bring ID) | Fail |
+| 2.7 | 1h reminder | Reminder triggers 1h before | "Upcoming Appointment Reminder" | Doctor, Time, Clinic (brief) | Fail |
+| 2.8 | HITL pending (patient) | Submit request needing human review | "Appointment Request Under Review" | Status: Pending Review, Reason, Expected follow-up | Pass |
+| 2.9 | HITL pending (staff) | Same request triggers staff email | "Action Required: Approval Request Pending" | Patient, Request Type, Reason Flagged, AI Summary, AI Confidence | Pass |
+| 2.10 | HITL approved | Front desk approves request | "Appointment Approved" | Doctor, Date, Time, Final confirmation | Pass |
+| 2.11 | HITL rejected | Front desk rejects request | "Appointment Request Update" | Reason, Staff Note, Next steps (contact clinic) | Pass |
+| 2.12 | Emergency escalation | Speak "I have chest pain" to voice agent | "Emergency Request Received" | Escalated status, transcript, emergency warning | Pass |
+| 2.13 | SMTP not configured | Disable SMTP settings in .env | Email logged as warning (not crashed) | No 500 error, booking still succeeds | Pass |
 
 ## 3. Cancellation Scenarios
 
 | # | Test | Steps | Expected Result | Pass/Fail |
 |---|------|-------|-----------------|-----------|
-| 3.1 | Normal cancellation | Cancel appointment >24h away | Immediate cancellation, email sent | |
+| 3.1 | Normal cancellation | Cancel appointment >24h away | Immediate cancellation, email sent | Pass |
 | 3.2 | Late cancellation (patient) | Cancel appointment <24h away | Routed to HITL queue for staff review | |
 | 3.3 | Late cancellation (staff) | Admin/front desk cancels <24h away | Immediate cancellation (bypasses HITL) | |
-| 3.4 | Cancel already-cancelled | Try to cancel again | 404 or idempotent | |
+| 3.4 | Cancel already-cancelled | Try to cancel again | 404 or idempotent | Pass |
 
 ## 4. Reschedule Scenarios
 
 | # | Test | Steps | Expected Result | Pass/Fail |
 |---|------|-------|-----------------|-----------|
-| 4.1 | Reschedule by admin | PUT `/appointments/{id}/reschedule` | Updated appointment, reschedule email sent | |
-| 4.2 | Reschedule by patient | Same endpoint, own patient user | Updated, email sent | |
-| 4.3 | Reschedule by wrong patient | Patient tries to reschedule another's appt | 403 Forbidden | |
-| 4.4 | Reschedule with reason | Provide reason field | Reason appears in email | |
+| 4.1 | Reschedule by admin | PUT `/appointments/{id}/reschedule` | Updated appointment, reschedule email sent | Pass |
+| 4.2 | Reschedule by patient | Same endpoint, own patient user | Updated, email sent | Pass |
+| 4.3 | Reschedule by wrong patient | Patient tries to reschedule another's appt | 403 Forbidden | Pass |
+| 4.4 | Reschedule with reason | Provide reason field | Reason appears in email | Pass |
 
 ## 5. Reminder Worker
 
 | # | Test | Steps | Expected Result | Pass/Fail |
 |---|------|-------|-----------------|-----------|
-| 5.1 | Reminder created on booking | Book appointment | Two reminders created (24h and 1h before) | |
-| 5.2 | Reminder polled by worker | Wait ≤60s after `scheduled_at` | Worker picks it up, sends email, status → `sent` | |
-| 5.3 | Duplicate reminders skipped | Existing remining for same slot | No duplicate sent (dedup check works) | |
-| 5.4 | Reminder audit log | After sending | `audit_logs` has entry: action=reminder_sent | |
+| 5.1 | Reminder created on booking | Book appointment | Two reminders created (24h and 1h before) | Pass |
+| 5.2 | Reminder polled by worker | Wait ≤60s after `scheduled_at` | Worker picks it up, sends email, status → `sent` | Fail |
+| 5.3 | Duplicate reminders skipped | Existing remining for same slot | No duplicate sent (dedup check works) | Fail |
+| 5.4 | Reminder audit log | After sending | `audit_logs` has entry: action=reminder_sent | Fail |
 
 ## 6. HITL Approval Queue (Front Desk Dashboard)
 
 | # | Test | Steps | Expected Result | Pass/Fail |
 |---|------|-------|-----------------|-----------|
-| 6.1 | Pending list | GET `/api/v1/approvals/pending` | Only pending requests | |
-| 6.2 | Full list with filters | GET with `?status=approved` | Filtered results | |
-| 6.3 | Approve request | POST `/approvals/{id}/approve` | Status → approved, deferred action executed | |
-| 6.4 | Approve and auto-book | Booking approval executes AppointmentCreate | Actual appointment created | |
-| 6.5 | Reject request | POST `/approvals/{id}/reject` | Status → rejected, no side effects | |
-| 6.6 | Rejected gets email | After rejection | HITL rejected email sent to patient | |
+| 6.1 | Pending list | GET `/api/v1/approvals/pending` | Only pending requests | Pass |
+| 6.2 | Full list with filters | GET with `?status=approved` | Filtered results | Pass |
+| 6.3 | Approve request | POST `/approvals/{id}/approve` | Status → approved, deferred action executed | Pass |
+| 6.4 | Approve and auto-book | Booking approval executes AppointmentCreate | Actual appointment created | Pass |
+| 6.5 | Reject request | POST `/approvals/{id}/reject` | Status → rejected, no side effects | Pass |
+| 6.6 | Rejected gets email | After rejection | HITL rejected email sent to patient | Pass |
 | 6.7 | Dashboard columns | Front desk UI | Shows: Patient, Doctor Requested, Time, Reason, Confidence, Escalation, Status, Created, Approve/Reject buttons | |
 
 ## 7. Patient Dashboard
@@ -93,52 +93,52 @@
 
 | # | Test | Trigger Action | Expected `audit_logs` entry | Pass/Fail |
 |---|------|---------------|----------------------------|-----------|
-| 8.1 | Appointment created | Book appointment | `action=appointment_created` | |
-| 8.2 | Appointment cancelled | Cancel appointment | `action=appointment_cancelled` | |
-| 8.3 | Appointment rescheduled | Reschedule | `action=appointment_rescheduled` | |
-| 8.4 | Reminder sent | Reminder worker | `action=reminder_sent` | |
-| 8.5 | HITL created | Submit for approval | `action=hitl_created` | |
-| 8.6 | HITL approved | Approve HITL | `action=hitl_approved` | |
-| 8.7 | HITL rejected | Reject HITL | `action=hitl_rejected` | |
-| 8.8 | Emergency escalation | Emergency phrase detected | `action=emergency_detected` | |
-| 8.9 | Audit scoped by org | Cross-org query | Only same-org logs returned | |
+| 8.1 | Appointment created | Book appointment | `action=appointment_created` | Pass |
+| 8.2 | Appointment cancelled | Cancel appointment | `action=appointment_cancelled` | Pass |
+| 8.3 | Appointment rescheduled | Reschedule | `action=appointment_rescheduled` | Pass |
+| 8.4 | Reminder sent | Reminder worker | `action=reminder_sent` | Fail |
+| 8.5 | HITL created | Submit for approval | `action=hitl_created` | Pass |
+| 8.6 | HITL approved | Approve HITL | `action=hitl_approved` | Pass |
+| 8.7 | HITL rejected | Reject HITL | `action=hitl_rejected` | Pass |
+| 8.8 | Emergency escalation | Emergency phrase detected | `action=emergency_detected` | Pass |
+| 8.9 | Audit scoped by org | Cross-org query | Only same-org logs returned | Pass |
 
 ## 9. Multi-Tenant Isolation
 
 | # | Test | Steps | Expected Result | Pass/Fail |
 |---|------|-------|-----------------|-----------|
-| 9.1 | Org A cannot see Org B data | Login as Org A user | All queries filtered by `org_id` | |
-| 9.2 | Org A cannot book Org B doctor | Provide Org B's doctor_id | 404 or 400 (not found) | |
-| 9.3 | Email only to org's patients | Send notification | Only patients within same org receive it | |
-| 9.4 | Reminders scoped by org | Check reminder queries | Filtered by `org_id` | |
+| 9.1 | Org A cannot see Org B data | Login as Org A user | All queries filtered by `org_id` | Pass |
+| 9.2 | Org A cannot book Org B doctor | Provide Org B's doctor_id | 404 or 400 (not found) | Pass |
+| 9.3 | Email only to org's patients | Send notification | Only patients within same org receive it | Pass |
+| 9.4 | Reminders scoped by org | Check reminder queries | Filtered by `org_id` | Pass |
 
 ## 10. Voice Agent Flow
 
 | # | Test | Steps | Expected Result | Pass/Fail |
 |---|------|-------|-----------------|-----------|
-| 10.1 | Full booking flow | "I need to see a cardiologist" → date → time | find_doctors → check_availability → book_appointment → email | |
-| 10.2 | Emergency detection | "I have chest pain" | Emergency response, escalation email sent | |
-| 10.3 | HITL low confidence | Book with `ai_confidence: 0.5` | Routed to approval queue | |
-| 10.4 | Hallucinated doctor_id | Agent sends fake UUID | 400 "Doctor not found" (not 500) | |
+| 10.1 | Full booking flow | "I need to see a cardiologist" → date → time | find_doctors → check_availability → book_appointment → email | Pass |
+| 10.2 | Emergency detection | "I have chest pain" | Emergency response, escalation email sent | Pass |
+| 10.3 | HITL low confidence | Book with `ai_confidence: 0.5` | Routed to approval queue | Pass |
+| 10.4 | Hallucinated doctor_id | Agent sends fake UUID | 400 "Doctor not found" (not 500) | Pass |
 | 10.5 | Hindi input | Speak in Hindi | Agent understands, responds in English | |
-| 10.6 | Patient history | "What are my appointments?" | get_patient_history returns list | |
+| 10.6 | Patient history | "What are my appointments?" | get_patient_history returns list | Pass |
 
 ## 11. Doctor Schedule (CSV Tool)
 
 | # | Test | Steps | Expected Result | Pass/Fail |
 |---|------|-------|-----------------|-----------|
-| 11.1 | Get schedule by doctor name | POST `/api/v1/tools/get_doctor_schedule` with `doctor_name="Ali"` | Returns matching rows from CSV | |
-| 11.2 | Get schedule by specialty | POST with `specialty="Cardiology"` | Only cardiologist rows returned | |
-| 11.3 | Get schedule no filter | POST with empty body | Returns all schedule entries | |
-| 11.4 | Agent calls schedule before availability | Speak "Book with Dr. Ali tomorrow" | Agent calls get_doctor_schedule before check_availability | |
-| 11.5 | Agent respects off-days | Ask for Saturday when doctor doesn't work | Agent only suggests days from schedule | |
-| 11.6 | CSV file missing | Delete/rename CSV | Endpoint returns empty list, no crash | |
+| 11.1 | Get schedule by doctor name | POST `/api/v1/tools/get_doctor_schedule` with `doctor_name="Ali"` | Returns matching rows from CSV | Pass |
+| 11.2 | Get schedule by specialty | POST with `specialty="Cardiology"` | Only cardiologist rows returned | Pass |
+| 11.3 | Get schedule no filter | POST with empty body | Returns all schedule entries | Pass |
+| 11.4 | Agent calls schedule before availability | Speak "Book with Dr. Ali tomorrow" | Agent calls get_doctor_schedule before check_availability | Pass |
+| 11.5 | Agent respects off-days | Ask for Saturday when doctor doesn't work | Agent only suggests days from schedule | Pass |
+| 11.6 | CSV file missing | Delete/rename CSV | Endpoint returns empty list, no crash | Pass |
 
 ## 12. Error Handling
 
 | # | Test | Steps | Expected Result | Pass/Fail |
 |---|------|-------|-----------------|-----------|
-| 12.1 | Invalid doctor_id returns 400 | POST with fake UUID | 400 + clear error message | |
-| 12.2 | Missing required fields | POST without `doctor_id` | 422 validation error | |
-| 12.3 | Email failure is non-blocking | SMTP server down | Booking succeeds, email logged as failed | |
-| 12.4 | Naive datetime in request | Send datetime without timezone | Coerced to UTC, stored correctly | |
+| 12.1 | Invalid doctor_id returns 400 | POST with fake UUID | 400 + clear error message | Pass |
+| 12.2 | Missing required fields | POST without `doctor_id` | 422 validation error | Pass |
+| 12.3 | Email failure is non-blocking | SMTP server down | Booking succeeds, email logged as failed | Pass |
+| 12.4 | Naive datetime in request | Send datetime without timezone | Coerced to UTC, stored correctly | Pass |
