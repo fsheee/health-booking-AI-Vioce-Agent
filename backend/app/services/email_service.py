@@ -156,7 +156,18 @@ def send_appointment_confirmation(session: Session, appointment: Appointment, or
         clinic_email=details["clinic_email"] or settings.smtp_from_email,
     )
 
-    subject, html = confirmation_email(**details)
+    subject, html = confirmation_email(
+        patient_name=details["patient_name"],
+        doctor_name=details["doctor_name"],
+        specialization=details["specialization"],
+        appointment_date=details["appointment_date"],
+        appointment_time=details["appointment_time"],
+        appointment_id=details["appointment_id"],
+        clinic_name=details["clinic_name"],
+        clinic_phone=details["clinic_phone"],
+        clinic_address=details["clinic_address"],
+        clinic_email=details["clinic_email"],
+    )
     _send_email(details["patient_email"], subject, html, ics_content=ics_content)
     logger.info("Confirmation email sent — appt={id} | patient={p}",
                 id=appointment.id, p=details["patient_name"])
