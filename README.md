@@ -101,6 +101,40 @@ Set these in your Vercel project dashboard (Production + Preview):
 | `CORS_ORIGINS` | `["https://my-app.vercel.app","http://localhost:3000"]` | Allowed CORS origins (JSON array) |
 | `VERCEL_FRONTEND_URL` | `my-app.vercel.app` | Short frontend URL (auto-prepends `https://`) |
 
+### Test-Driven Deployment
+
+After deploying, verify the backend with a quick smoke test:
+
+```bash
+# 1. Seed admin
+curl -X POST https://voice-agent-health-booking.vercel.app/api/v1/auth/seed-admin \
+  -H "Content-Type: application/json" \
+  -d '{"email":"admin@gmail.com","password":"admin123"}'
+
+# 2. Login
+TOKEN=$(curl -s -X POST https://voice-agent-health-booking.vercel.app/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"admin@gmail.com","password":"admin123"}' | python -c "import sys,json; print(json.load(sys.stdin)['access_token'])")
+
+# 3. Create a patient
+curl -s -X POST https://voice-agent-health-booking.vercel.app/api/v1/patients \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $TOKEN" \
+  -d '{"first_name":"Test","last_name":"Patient","email":"test@patient.com","phone":"1234567890"}'
+
+# 4. Start a voice session
+curl -s -X POST https://voice-agent-health-booking.vercel.app/api/v1/voice/sessions \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $TOKEN" \
+  -d '{"patient_id":"<PATIENT_ID_FROM_STEP_3>"}'
+
+# 5. List voice sessions
+curl -s https://voice-agent-health-booking.vercel.app/api/v1/voice/sessions \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+Expected: all endpoints return 200/201 with valid JSON responses.
+
 ### Logging on Vercel
 
 The backend auto-detects the Vercel environment and logs to `stderr` instead of writing to the filesystem (which is read-only on AWS Lambda). Logs appear in the Vercel dashboard under **Functions** → **Logs**.
