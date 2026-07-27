@@ -46,7 +46,7 @@ uv sync --extra dev
 uv run uvicorn app.main:app --reload
 ```
 
-Open http://localhost:8000/docs for Swagger UI.
+Open [http://localhost:8000/docs](http://localhost:8000/docs) for Swagger UI.
 
 > Use `uv` for all Python dependency management — never pip or poetry.
 
@@ -58,8 +58,8 @@ npm install
 npm run dev
 ```
 
-Open local http://localhost:3000.
-frontend deployed https://health-appoinment-ai-voice-agent.vercel.app
+Open [http://localhost:3000](http://localhost:3000) locally.
+Frontend deployed: [https://health-appoinment-ai-voice-agent.vercel.app](https://health-appoinment-ai-voice-agent.vercel.app)
 
 ### Database
 
@@ -76,7 +76,7 @@ uv run alembic upgrade head
 cd backend
 uv run pytest                # test suite
 uv run ruff check .          # lint
-backeend deployed https://voice-agent-health-booking.vercel.app/docs
+Backend deployed: [https://voice-agent-health-booking.vercel.app/docs](https://voice-agent-health-booking.vercel.app/docs)
 # HITL end-to-end smoke test (runs against the configured database)
 PYTHONPATH=. PYTHONIOENCODING=utf-8 uv run python scripts/test_hitl_e2e.py
 ```
