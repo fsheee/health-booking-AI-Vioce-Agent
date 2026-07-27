@@ -39,7 +39,7 @@ export default function Home() {
         </h1>
         <p className="relative mx-auto mt-6 max-w-2xl text-lg text-blue-200/80">
           Multi-tenant SaaS platform for clinics and healthcare providers.
-          AI-powered voice assistant for appointment booking, patient management, and reminders.
+          AI-powered voice agent for appointment booking, patient management, and reminders.
         </p>
         <div className="relative mt-10 flex items-center justify-center gap-4">
           <Link
@@ -66,7 +66,7 @@ export default function Home() {
           </p>
           <div className="mt-16 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             <FeatureCard
-              title="AI Voice Assistant"
+              title="AI Voice Agent"
               desc="Patients can book appointments, check availability, and get reminders using natural speech."
             />
             <FeatureCard

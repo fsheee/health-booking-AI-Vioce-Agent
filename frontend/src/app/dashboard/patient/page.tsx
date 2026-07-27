@@ -179,7 +179,7 @@ export default function PatientDashboard() {
         <CardContent className="flex items-center justify-between p-6">
           <div>
             <p className="text-sm opacity-90">Need help? Use the</p>
-            <p className="text-xl font-semibold">AI Voice Assistant</p>
+            <p className="text-xl font-semibold">AI Voice Agent</p>
           </div>
           <Link href="/dashboard/patient/voice">
             <Button variant="secondary" size="lg" className="gap-2 bg-white text-blue-600 hover:bg-blue-50">

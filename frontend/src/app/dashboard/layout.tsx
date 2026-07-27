@@ -41,7 +41,7 @@ const navConfig: Record<string, NavItem[]> = {
   patient: [
     { label: "Dashboard", href: "/dashboard/patient", icon: <LayoutDashboard className="h-4 w-4" /> },
     { label: "Appointments", href: "/dashboard/patient", icon: <CalendarDays className="h-4 w-4" /> },
-    { label: "Voice Assistant", href: "/dashboard/patient/voice", icon: <Mic className="h-4 w-4" /> },
+    { label: "Voice Agent", href: "/dashboard/patient/voice", icon: <Mic className="h-4 w-4" /> },
   ],
 };
 

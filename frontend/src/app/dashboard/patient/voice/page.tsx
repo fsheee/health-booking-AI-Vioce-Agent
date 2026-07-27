@@ -129,11 +129,11 @@ export default function VoiceAssistantPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">AI Voice Assistant</h1>
+      <h1 className="text-2xl font-bold">AI Voice Agent</h1>
 
       <Card className="max-w-2xl">
         <CardHeader>
-          <CardTitle>Speak with the AI Assistant</CardTitle>
+          <CardTitle>Speak with the AI Agent</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
           {isEmergency && (
