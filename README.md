@@ -83,7 +83,7 @@ PYTHONPATH=. PYTHONIOENCODING=utf-8 uv run python scripts/test_hitl_e2e.py
 
 
 
-Testing checklist: `backend/tests/TESTING_CHECKLIST.md` (91 test cases)
+Testing checklist: `backend/tests/TESTING_CHECKLIST.md` (107 test cases)
 
 ## Deployment (Vercel)
 
@@ -227,7 +227,7 @@ Layering rule: endpoint → service → repository → model. Don't skip layers.
 | `backend/docs/hitl-approvals.md` | HITL approval workflow: decision rules, schema, API, agent behavior |
 | `backend/docs/agent-logic.md` | Voice agent pipeline and tool-calling logic |
 | `backend/docs/email-notifications.md` | Email templates and triggers |
-| `backend/tests/TESTING_CHECKLIST.md` | 91 test cases for all features |
+| `backend/tests/TESTING_CHECKLIST.md` | 107 test cases for all features |
 | `CHANGES_SUMMARY.md` | Running log of fixes and features |
 | `ENHANCEMENTS.md` | Feature enhancements |
 
