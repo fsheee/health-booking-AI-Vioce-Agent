@@ -142,3 +142,19 @@
 | 12.2 | Missing required fields | POST without `doctor_id` | 422 validation error | Pass |
 | 12.3 | Email failure is non-blocking | SMTP server down | Booking succeeds, email logged as failed | Pass |
 | 12.4 | Naive datetime in request | Send datetime without timezone | Coerced to UTC, stored correctly | Pass |
+
+## 13. Deployment Time
+
+| # | Test | Steps | Expected Result | Pass/Fail |
+|---|------|-------|-----------------|-----------|
+| 13.1 | Docker Compose up | `docker compose up -d` | All services start (backend, postgres, redis if used), no exit code errors | |
+| 13.2 | Backend container health | `docker compose ps` / health endpoint | Status = healthy, `GET /health` returns 200 | |
+| 13.3 | DB migration runs on startup | Check backend logs on first start | Alembic runs `upgrade head` automatically, tables created | |
+| 13.4 | .env vars present | Check required env vars | `DATABASE_URL`, `SECRET_KEY`, `SMTP_*`, `GEMINI_API_KEY`, `ASSEMBLYAI_API_KEY` all set | |
+| 13.5 | Missing .env var graceful failure | Remove one required var, restart | App logs helpful error, does not crash silently | |
+| 13.6 | CORS configured | Frontend makes cross-origin request | `Access-Control-Allow-Origin` header present, request succeeds | |
+| 13.7 | Logging configured | Check log output | Structured logs (JSON or consistent format), no sensitive data in logs | |
+| 13.8 | Secrets not hardcoded | Grep codebase for hardcoded keys | No API keys, passwords, or secrets in source code | |
+| 13.9 | Seed data script runs | Run seed script on fresh DB | Org, admin user, sample doctor/patient/appointment created | |
+| 13.10 | Frontend builds | `npm run build` in frontend | Build succeeds, no TypeScript or lint errors | |
+| 13.11 | API docs accessible | `GET /docs` or `/redoc` | Swagger UI / ReDoc renders, all endpoints listed | |
